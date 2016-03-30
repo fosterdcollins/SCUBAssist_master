@@ -25,10 +25,10 @@ boolean compassFlag;
 
 const float pi = 3.1415926;
 
-#define ESC1 2 //3
-#define ESC2 4 //4
-#define ESC3 3 //5
-#define ESC4 5 //2
+#define ESC1 2
+#define ESC2 4
+#define ESC3 3
+#define ESC4 5
 
 #define MAXTHRUST 8
 float Ainv[3][3] = {
