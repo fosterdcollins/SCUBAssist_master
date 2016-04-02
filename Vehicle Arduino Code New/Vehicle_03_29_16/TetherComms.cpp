@@ -2,6 +2,7 @@
 
 #define DATATRANSFACTOR 1000
 static char TempBuffer[40];
+
 int i = 0;
 
 float ReceivedData[3][1] = {
@@ -12,6 +13,9 @@ char StaleDataFlag = 0;
 
 boolean PossibleMsg = 0;
 
+
+
+/////////////////  Tether Comms  ////////////////////////
 boolean updateControls(void){
 
   //check if you have recived data in the last 1500 cycles
@@ -44,7 +48,7 @@ boolean updateControls(void){
       TempBuffer[i] = inByte;
       i++;
     }
-    Serial.print(inByte);
+    //Serial.print(inByte);
 
     if(i >= 50){
       i = 0; 
@@ -52,7 +56,7 @@ boolean updateControls(void){
     }
 
     if(inByte == ';'){
-      Serial.println("got it");
+      //Serial.println("got it");
       TempBuffer[i] = '\0';
       i = 0;
       //Serial.println(TempBuffer);
@@ -72,6 +76,7 @@ boolean updateControls(void){
           ReceivedData[1][0] = (double)Temp[2]/DATATRANSFACTOR;
           ReceivedData[2][0] = (double)Temp[3]/DATATRANSFACTOR; //omega
           ZReceivedData = (double)Temp[4]/DATATRANSFACTOR; //Zdot
+          //Serial.println(TempBuffer);
           return 1;
           //Serial.println(ReceivedData[2][0]);        
           //Serial.flush();
@@ -85,13 +90,13 @@ boolean updateControls(void){
         }
       }
       else if(TempBuffer[0] == 'G'){
-        long Temp[5]; 
-        float Gains[5];
+        long Temp[7]; 
+        float Gains[7];
         Serial.println("Gains");
         i = 0;
-        int Check = sscanf(TempBuffer ,"G%ld,%ld,%ld,%ld,%ld;", &Temp, &Temp[1], &Temp[2], &Temp[3], &Temp[4]);  
-        if(Check == 5){ // valid data
-          for(int ii = 0; ii < 5; ii++){
+        int Check = sscanf(TempBuffer ,"G%ld,%ld,%ld,%ld,%ld,%ld,%ld;", &Temp, &Temp[1], &Temp[2], &Temp[3], &Temp[4], &Temp[5], &Temp[6]);  
+        if(Check == 7){ // valid data
+          for(int ii = 0; ii < 7; ii++){
             Gains[ii] = (float)Temp[ii]/DATATRANSFACTOR;  
             Serial.println(Gains[ii], 3);
           }
@@ -104,5 +109,7 @@ boolean updateControls(void){
 return 0;
 }
 
-//C2000,3455,4565,23;
+
+
+
 

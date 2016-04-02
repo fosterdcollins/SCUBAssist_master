@@ -2,23 +2,26 @@ close all; clear all;
 %fclose(arduino);
 ArduinoPresent = 1;
 CompassEnabled = 1;
-PromptSaving = 0;
+PromptSaving = 1;
 mode = 1; % 0=debug, 1=open, 2=closed, 3=auto
 
 %%%%%%%%%%%%%%%%%%%%  Gains  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Kp_Heading = .75;
-Kd_Heading = .35;
+Kp_Heading = .7;
+Kd_Heading = .36;
 
 Kp_Depth = 6;
 Kd_Depth = 0;
-Ki_Depth = 0;
+Ki_Depth = 1;
 
-Gains = round([Kp_Heading Kd_Heading Kp_Depth Kd_Depth Ki_Depth]*1000);
+Kp_Lateral = 1;
+Kd_Lateral = 0;
+
+Gains = round([Kp_Heading Kd_Heading Kp_Depth Kd_Depth Ki_Depth Kp_Lateral Kd_Lateral]*1000);
 
 %%%%%%%%%%%%%%%%%%%%  Gains  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if ArduinoPresent
-    arduino = serial('COM54','BaudRate',19200); %change COM port as needed
+    arduino = serial('COM54','BaudRate',115200); %change COM port as needed
     fopen(arduino)
 %     s.BytesAvailableFcn = @ArduinoSerial;
 %     arduino.BytesAvailableFcnMode = 'terminator';
@@ -27,7 +30,7 @@ if ArduinoPresent
     pause(2);
     dataStr = ['G' num2str(Gains(1)) ',' num2str(Gains(2)) ',' num2str(Gains(3)) ',' num2str(Gains(4)) ',' num2str(Gains(5)) ';'];
     dataStr
-    for i = 1:3
+    for i = 1:2
         fprintf(arduino, dataStr);
     end
     receivingLog = zeros(1,10);  % Batt, Yaw, Roll, Pitch, Depth, Ax, Ay, Az, YawSet, DepthSet
@@ -38,12 +41,12 @@ h.joy = vrjoystick(1);
 
 HG_Open = 2;
 RG_Open = 1;
-VG_Open = 8;
+VG_Open = 6;
 
 %closeedLoopGain
-HG_Closed = 1;
+HG_Closed = 1.5;
 RG_Closed = 5;
-VG_Closed = 8;
+VG_Closed = 6;
 
 SetPoint = [0,0];
 
@@ -110,13 +113,14 @@ while (buttons(1) == 0)
     time = toc;
     %get joystick data
     [axes, buttons, povs] = read(h.joy);
-    if (buttons(4) == 1 && loop-lastswitch > 3)
-        lastswitch = loop;
-        if mode == 1 %switch to closed loop
-            mode = 2;
-        elseif mode == 2; %switch to open loop
-            mode = 1;
-        end
+    if (buttons(7) && mode ~= 1)
+        mode = 1;
+    end
+    if (buttons(9) && mode ~= 2)
+        mode = 2;
+    end
+    if (buttons(11) && mode ~= 3)
+        mode = 3;
     end
 
     % Handle dead pan XY
@@ -175,7 +179,7 @@ while (buttons(1) == 0)
     
     %% send to arduino
     SendingData = round([Fdesired; ZForceRequested]*1000);
-    dataStr = ['C' num2str(mode) ',' num2str(SendingData(1)) ',' num2str(SendingData(2)) ',' num2str(SendingData(3)) ',' num2str(SendingData(4)) ';']
+    dataStr = ['C' num2str(mode) ',' num2str(SendingData(1)) ',' num2str(SendingData(2)) ',' num2str(SendingData(3)) ',' num2str(SendingData(4)) ';\n']
    
     if(ArduinoPresent)
         fprintf(arduino, dataStr);

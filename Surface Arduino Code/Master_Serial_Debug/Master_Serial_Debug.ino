@@ -30,7 +30,7 @@ int CurrData[5];
 void setup()   /****** SETUP: RUNS ONCE ******/
 {
   // Start the built-in serial port, probably to Serial Monitor
-  Serial.begin(19200);
+  Serial.begin(115200);
   pinMode(SerialTxControl, OUTPUT);    //set SSerialTxControl to output
   DISABLE_TRANSMIT; 
 
@@ -51,11 +51,11 @@ void loop()   /****** LOOP: RUNS CONSTANTLY ******/
     if(msgRecivedVehicle){
       //Serial.println("Data: ");
       //Serial.println("FullMsg:");
-      Serial.print(charIncomingVehicle);
+      Serial.println(charIncomingVehicle);
     }
     else{
       //Serial.println(" ");
-      Serial.print(charIncomingVehicle_Default);
+      Serial.println(charIncomingVehicle_Default);
     }
     msgRecivedComputer = 0;
     msgRecivedVehicle = 0;
@@ -64,6 +64,7 @@ void loop()   /****** LOOP: RUNS CONSTANTLY ******/
 }
 
 void serialEvent(){  
+  //Serial.println("avail");
   while (Serial.available()) {
     charIncomingController[n1] = Serial.read();
     //    Serial.print("n = ");
@@ -79,7 +80,7 @@ void serialEvent(){
       //      Serial.println(charIncomingController);
       n1 = 0;
       msgRecivedComputer = 1;
-      delay(5);
+      delay(10);
       DISABLE_TRANSMIT;
     }  
   }

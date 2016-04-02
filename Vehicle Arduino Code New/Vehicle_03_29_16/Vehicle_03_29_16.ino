@@ -3,6 +3,7 @@
 #include "MatrixMath.h"
 #include "Controller.h"
 #include "UM7.h"
+#include "Gimbal.h"
 #include <Wire.h>
 #include <stdio.h>
 
@@ -18,6 +19,7 @@ void SendTelem(void);
 #define ENABLE_TRANSMIT digitalWrite(22, HIGH)
 #define DISABLE_TRANSMIT digitalWrite(22, LOW)
 #define BATT_PIN A0
+
 int battery = 0;
 float currDepth = 0;
 float dt;
@@ -52,8 +54,8 @@ float u[3][1];
 
 float SetPoint[6] = {
   0, 0, 0, 0, 0, 0};
-#define X 0
-#define Y 1
+#define X_ 0
+#define Y_ 1
 #define YAW 2
 #define YAW_RATE 3
 #define DEPTH 4
@@ -80,9 +82,18 @@ void setup() {
   VThruster.writeMicroseconds(1500);
   Wire.begin();
 
-  delay(5000);
+  for(int led = 34; led <= 53; led++){
+    pinMode(led, OUTPUT);
+    digitalWrite(led, LOW);
+    delay(100);
+  }
 
+  for(int led = 34; led <= 53; led++){
+    digitalWrite(led, HIGH);
+  }
+  
   Serial1.begin(115200);
+  Serial2.begin(115200);
   pinMode(22, OUTPUT);
   DISABLE_TRANSMIT;
 
@@ -109,25 +120,34 @@ void loop() {
     timeLast = imu.AccTime;
     //Serial.println(dt);
     depthSensor.read();
-    currDepth = depthSensor.depth(); //m
+    currDepth = depthSensor.depth() * 3.28; //ft
+    compassFlag = updateControls();
+    SendTelem();
+
 
     switch (MODE) {
     case 0: // Debug
-      compassFlag = updateControls();
-      SendTelem();
+      
+      //SendTelem();
       //Serial.println("MODE0");
       Matrix.Multiply((float*)Ainv, (float*)ReceivedData, 3, 3, 1, (float*)Thrust);
       lastmode = 0;
       break;
 
+
+
+
     case 1: // Tethered, Open Loop
-      compassFlag = updateControls();
-      SendTelem();
+      //compassFlag = updateControls();
+      //SendTelem();
       //Serial.println("MODE1");
       Matrix.Multiply((float*)Ainv, (float*)ReceivedData, 3, 3, 1, (float*)Thrust);
       ZThrust = ZReceivedData;
       lastmode = 1;
       break;
+
+
+
 
     case 2: // Tethered, Closed Loop
       if (lastmode != 2) {
@@ -139,9 +159,6 @@ void loop() {
         SetPoint[DEPTH_RATE] = 0;
         resetDepthI();
       }
-
-      compassFlag = updateControls();
-      SendTelem();
 
       //increment heading setpoint
       SetPoint[YAW] += ReceivedData[2][0] * dt;
@@ -156,29 +173,74 @@ void loop() {
       Serial.print("dt: ");
       Serial.print(imu.AccTime);
       Serial.print("\tY: ");
+      Serial.print(imu.yaw);
+      Serial.print("\tYSet: ");
       Serial.print(SetPoint[YAW]);
 
       //increment depth setpoint
       SetPoint[DEPTH] += ZReceivedData * dt;
       SetPoint[DEPTH_RATE] = ZReceivedData;
-      SetPoint[DEPTH] = constrain(SetPoint[DEPTH], -1, 4);
+      SetPoint[DEPTH] = constrain(SetPoint[DEPTH], -1, 12);
 
       Serial.print("\tD: ");
       Serial.print(SetPoint[DEPTH]);
 
       u[0][0] = ReceivedData[0][0];
       u[1][0] = ReceivedData[1][0];
-      u[2][0] = HeadingController(SetPoint[YAW], SetPoint[YAW_RATE], imu.yaw, imu.yaw_rate);
-      Serial.print("\tu: ");
-      Serial.println(u[2][0]);
+      u[2][0] = HeadingController(SetPoint[YAW], SetPoint[YAW_RATE], imu.yaw, imu.yaw_rate, MODE);
+      Serial.print("\tuHead: ");
+      Serial.print(u[2][0]);
 
-      Matrix.Multiply((float*)Ainv, (float*)u, 3, 3, 1, (float*)Thrust); //x and y same as open
+      Matrix.Multiply((float*)Ainv, (float*)u, 3, 3, 1, (float*)Thrust); //x and y same as open loop
       ZThrust = DepthController(SetPoint[DEPTH], currDepth, SetPoint[DEPTH_RATE], imu.AccTime); //DEPTH temporarily 0
-
+      
+      Serial.print("\tuDepth: ");
+      Serial.println(ZThrust);
+      
       lastmode = 2;
       break;
 
+
+
     case 3: // Autonomous
+      //updateControls();
+      //SendTelem();
+      //getRelativePose(imu.yaw, currDepth);
+      getRelativePose(45, currDepth);
+      SetPoint[X_] = -3;
+      SetPoint[Y_] = 0;
+      SetPoint[YAW] = getHeadingToDiver();
+      SetPoint[YAW_RATE] = 0;
+      SetPoint[DEPTH] = getDiverZ(); //this returns in absolute depth
+      SetPoint[DEPTH_RATE] = 0;
+      
+      PositionController(SetPoint[X_], getDiverX(), SetPoint[Y_], getDiverY(), 45);
+      u[0][0] = -getVXAuton();
+      u[1][0] = getVYAuton();
+      u[2][0] = HeadingController(SetPoint[YAW], SetPoint[YAW_RATE], imu.yaw, imu.yaw_rate, MODE);
+
+      Matrix.Multiply((float*)Ainv, (float*)u, 3, 3, 1, (float*)Thrust); 
+      
+      ZThrust = DepthController(SetPoint[DEPTH], currDepth, SetPoint[DEPTH_RATE], imu.AccTime);
+
+
+      Serial.print("Yaw: ");
+      Serial.print(imu.yaw);
+      Serial.print("\tX: ");
+      Serial.print(getDiverX());
+      Serial.print("\tY: ");
+      Serial.print(getDiverY());
+      Serial.print("\tCD: ");
+      Serial.print(currDepth);
+      Serial.print("\tZ: ");
+      Serial.print(getDiverZ());
+      Serial.print("\tuX: ");
+      Serial.print(u[0][0]);
+      Serial.print("\tuY: ");
+      Serial.print(u[1][0]);
+      Serial.print("\tuH: ");
+      Serial.println(u[2][0]);
+      
       lastmode = 3;
       break;
     }
@@ -187,7 +249,7 @@ void loop() {
   //Update ESCs
     HThruster1.writeMicroseconds(PWMVals(Thrust[0][0]));
     HThruster2.writeMicroseconds(PWMVals(Thrust[1][0]));
-    HThruster3.writeMicroseconds(PWMVals(Thrust[2][0]));
+    HThruster3.writeMicroseconds(PWMVals(Thrust[2][0])); 
     VThruster.writeMicroseconds(PWMVals(ZThrust));
 //    HThruster1.writeMicroseconds(1400);
 //    HThruster2.writeMicroseconds(1400);
@@ -242,4 +304,13 @@ void serialEvent3() {
   }
   \
   //digitalWrite(30, LOW);
+}
+
+void serialEvent2() {
+  //digitalWrite(30, HIGH);
+  //Serial.println("\tSerial2\t");
+  while (Serial2.available()) {
+    updateVision();
+  }
+
 }
