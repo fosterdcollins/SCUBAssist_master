@@ -7,9 +7,9 @@
 float Kp_Heading = .75;
 float Kd_Heading = .35;
 
-float Kp_Depth = 2;
+float Kp_Depth = 6;
 float Kd_Depth = 0;
-float Ki_Depth = 0;
+float Ki_Depth = 1;
 float Integral_Depth = 0;
 float lastDepth = 0;
 float lastDepthTime = 0;

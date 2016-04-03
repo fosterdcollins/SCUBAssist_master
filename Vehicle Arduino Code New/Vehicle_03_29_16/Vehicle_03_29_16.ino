@@ -6,8 +6,9 @@
 #include "Gimbal.h"
 #include <Wire.h>
 #include <stdio.h>
-
 #include "MS5837.h"
+
+#define THRUSTERS_ENABLED 0
 
 int MODE = 0;
 int lastmode;
@@ -33,17 +34,31 @@ const float pi = 3.1415926;
 #define ESC4 5
 
 #define MAXTHRUST 8
+//float Ainv[3][3] = {
+//  {
+//    0.3996, 0.5774, -0.0333
+//  }
+//  ,
+//  {
+//    -0.3996, 0.5774, 0.0333
+//  }
+//  ,
+//  {
+//    0.6004, 0, 0.0333
+//  }
+//};
+//new controller Ainv
 float Ainv[3][3] = {
   {
-    0.3996, 0.5774, -0.0333
+    -0.5774, 0.3996, -0.0333
   }
   ,
   {
-    -0.3996, 0.5774, 0.0333
+    -0.5774, -0.3996, 0.0333
   }
   ,
   {
-    0.6004, 0, 0.0333
+   0, 0.6004, 0.0333
   }
 };
 
@@ -203,19 +218,17 @@ void loop() {
 
 
     case 3: // Autonomous
-      //updateControls();
-      //SendTelem();
-      //getRelativePose(imu.yaw, currDepth);
-      getRelativePose(45, currDepth);
+      int fakeHeading = 0;
+      getRelativePose(fakeHeading, currDepth);
       SetPoint[X_] = -3;
       SetPoint[Y_] = 0;
       SetPoint[YAW] = getHeadingToDiver();
       SetPoint[YAW_RATE] = 0;
-      SetPoint[DEPTH] = getDiverZ(); //this returns in absolute depth
+      SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth
       SetPoint[DEPTH_RATE] = 0;
       
-      PositionController(SetPoint[X_], getDiverX(), SetPoint[Y_], getDiverY(), 45);
-      u[0][0] = -getVXAuton();
+      PositionController(SetPoint[X_], getDiverX(), SetPoint[Y_], getDiverY(), fakeHeading);
+      u[0][0] = getVXAuton();
       u[1][0] = getVYAuton();
       u[2][0] = HeadingController(SetPoint[YAW], SetPoint[YAW_RATE], imu.yaw, imu.yaw_rate, MODE);
 
@@ -225,7 +238,7 @@ void loop() {
 
 
       Serial.print("Yaw: ");
-      Serial.print(imu.yaw);
+      Serial.print(imu.yaw, 1);
       Serial.print("\tX: ");
       Serial.print(getDiverX());
       Serial.print("\tY: ");
@@ -239,7 +252,9 @@ void loop() {
       Serial.print("\tuY: ");
       Serial.print(u[1][0]);
       Serial.print("\tuH: ");
-      Serial.println(u[2][0]);
+      Serial.print(u[2][0]);
+      Serial.print("\tuZ: ");
+      Serial.println(ZThrust);
       
       lastmode = 3;
       break;
@@ -247,10 +262,12 @@ void loop() {
 
     //Matrix.Print((float*)Thrust,3,1,"thrust");
   //Update ESCs
+  if(THRUSTERS_ENABLED){
     HThruster1.writeMicroseconds(PWMVals(Thrust[0][0]));
     HThruster2.writeMicroseconds(PWMVals(Thrust[1][0]));
     HThruster3.writeMicroseconds(PWMVals(Thrust[2][0])); 
     VThruster.writeMicroseconds(PWMVals(ZThrust));
+  }
 //    HThruster1.writeMicroseconds(1400);
 //    HThruster2.writeMicroseconds(1400);
 //    HThruster3.writeMicroseconds(1400);
@@ -302,7 +319,6 @@ void serialEvent3() {
   while (Serial3.available()) {
     imu.encode(Serial3.read());
   }
-  \
   //digitalWrite(30, LOW);
 }
 

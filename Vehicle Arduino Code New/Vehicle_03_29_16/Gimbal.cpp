@@ -11,6 +11,7 @@ float Pdiver_cam[3] = {0, 0, 0}; //x y z (ft)
 float Pdiver[3] = {0, 0, 0};
 
 boolean GoodPose = 0;
+float LastValidHeading = 0;
 
 uint16_t checksum(byte Buff[], int num);
 
@@ -20,14 +21,14 @@ boolean getValidDiver(void){
 
 void getRelativePose(float heading, float depth){
 
-  heading = heading/180*3.1415;
+  heading = (360 -heading) / 180 * 3.1415; 
   
   if(GoodPose == 1){
-    Pdiver[0] =  Pdiver_cam[0]*sin(heading - eulerGimbal[2]) - Pdiver_cam[2]*cos(heading - eulerGimbal[2])*cos(eulerGimbal[1]) - Pdiver_cam[1]*cos(heading - eulerGimbal[2])*sin(eulerGimbal[1]);
-    Pdiver[1] = -Pdiver_cam[0]*cos(heading - eulerGimbal[2]) - Pdiver_cam[2]*sin(heading - eulerGimbal[2])*cos(eulerGimbal[1]) - Pdiver_cam[2]*sin(heading - eulerGimbal[2])*sin(eulerGimbal[1]);
+    Pdiver[0] =  -Pdiver_cam[0]*sin(heading - eulerGimbal[2]) + Pdiver_cam[2]*cos(heading - eulerGimbal[2])*cos(eulerGimbal[1]) + Pdiver_cam[1]*cos(heading - eulerGimbal[2])*sin(eulerGimbal[1]);
+    Pdiver[1] = -Pdiver_cam[0]*cos(heading - eulerGimbal[2]) - Pdiver_cam[2]*sin(heading - eulerGimbal[2])*cos(eulerGimbal[1]) - Pdiver_cam[1]*sin(heading - eulerGimbal[2])*sin(eulerGimbal[1]);
     
-    float deltaZ =  Pdiver_cam[1]*cos(eulerGimbal[1]) - Pdiver_cam[2]*sin(eulerGimbal[1]);
-    Pdiver[2] = depth + deltaZ;
+    float deltaZ =  -Pdiver_cam[1]*cos(eulerGimbal[1]) + Pdiver_cam[2]*sin(eulerGimbal[1]);
+    Pdiver[2] = depth - deltaZ;
   }
   else{
      Pdiver[0] = 0;
@@ -50,10 +51,15 @@ float getDiverZ(void){
 }
 
 float getHeadingToDiver(void){
-  float diff = atan2(-getDiverY(), -getDiverX())*180/3.1415;  
-  if(diff < 0) diff += 180;
-  Serial.println(diff);
-  return diff;
+  float head = atan2(-getDiverY(), -getDiverX())*180/3.1415;  
+  if(head < 0) head += 360;
+  head = 360 - head;
+  //Serial.println(diff);
+  if(GoodPose){ 
+    LastValidHeading = head;
+    return head;
+    } 
+  else{ return LastValidHeading; }
   
 }
 

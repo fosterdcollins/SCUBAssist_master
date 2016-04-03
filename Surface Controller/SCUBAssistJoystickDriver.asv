@@ -70,22 +70,22 @@ T3_VectY = 0;
 %%
 T1_posX = 8.5; %FRONT RIGHT
 T1_posY = 5.5;
-T1_VectX = -sqrt(3)/2;
-T1_VectY = 1/2;
+T1_VectX = sqrt(3)/2;
+T1_VectY = -1/2;
 
 T2_posX = 8.5; %FRONT LEFT
 T2_posY = -5.5;
-T2_VectX = -sqrt(3)/2;
-T2_VectY = -1/2;
+T2_VectX = sqrt(3)/2;
+T2_VectY = 1/2;
 
 T3_posX = -12; %REAR
 T3_posY = 0;
 T3_VectX = 0;
-T3_VectY = 1;
+T3_VectY = -1;
 
-R1 = -cross([T1_posX T1_posY 0]-COP, [T1_VectX, T1_VectY 0]);
-R2 = -cross([T2_posX T2_posY 0]-COP, [T2_VectX, T2_VectY 0]);
-R3 = -cross([T3_posX T3_posY 0]-COP, [T3_VectX, T3_VectY 0]);
+R1 = cross([T1_posX T1_posY 0]-COP, [T1_VectX, T1_VectY 0]);
+R2 = cross([T2_posX T2_posY 0]-COP, [T2_VectX, T2_VectY 0]);
+R3 = cross([T3_posX T3_posY 0]-COP, [T3_VectX, T3_VectY 0]);
 
 A = [T1_VectX, T2_VectX, T3_VectX;
     T1_VectY, T2_VectY, T3_VectY;
@@ -142,8 +142,7 @@ while (buttons(1) == 0)
     % Handle dead pan XY
     %r = (norm([axes(1), axes(2)]) - xythresh)/(1-xythresh);
     r = (norm([-axes(2), axes(1)]) - xythresh)/(1-xythresh);
-    %theta = atan2(axes(2), axes(1));
-    theta = atan2(axes(1), -axes(2));
+    theta = atan2(axes(1), axes(2));
     
     if r > 0
         axes(1) = r*cos(theta);
