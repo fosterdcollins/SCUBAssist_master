@@ -70,8 +70,8 @@ void PositionController(float XDesired, float XPos, float YDesired, float YPos, 
   vCurr[1] = YDesired - YPos;
   
   
-  yaw = yaw*3.1415/180;
-  Serial.println(yaw);
+  yaw = (360-yaw)*3.1415/180;
+  //Serial.println(yaw);
   FAuton[0] = Kp_Lateral * (cos(yaw) * vCurr[0] + sin(yaw) * vCurr[1]);
   FAuton[1] = Kp_Lateral * (vCurr[0] *sin(yaw) - cos(yaw) * vCurr[1]);
 }
