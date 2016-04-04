@@ -83,10 +83,7 @@ void serialEvent(){
       msgRecivedComputer = 1;
       delay(10);
       DISABLE_TRANSMIT;
-    }
-    if(n1 >= 50){
-       n1 = 0;
-    }
+    }  
   }
 }
 
