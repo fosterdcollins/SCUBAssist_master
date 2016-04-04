@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include "MS5837.h"
 
-#define THRUSTERS_ENABLED 0
+#define V_THRUSTERS_ENABLED 0
+#define H_THRUSTERS_ENABLED 0
 
 int MODE = 0;
 int lastmode;
@@ -50,15 +51,15 @@ const float pi = 3.1415926;
 //new controller Ainv
 float Ainv[3][3] = {
   {
-    -0.5774, 0.3996, -0.0333
+    -0.5774, 0.3996, 0.0333
   }
   ,
   {
-    -0.5774, -0.3996, 0.0333
+    -0.5774, -0.3996, -0.0333
   }
   ,
   {
-   0, 0.6004, 0.0333
+   0, 0.6004, -0.0333
   }
 };
 
@@ -218,13 +219,13 @@ void loop() {
 
 
     case 3: // Autonomous
-      int fakeHeading = 0;
+      int fakeHeading = imu.yaw;
       getRelativePose(fakeHeading, currDepth);
       SetPoint[X_] = -3;
       SetPoint[Y_] = 0;
       SetPoint[YAW] = getHeadingToDiver();
       SetPoint[YAW_RATE] = 0;
-      SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth
+      SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth want to be Z feet shallower
       SetPoint[DEPTH_RATE] = 0;
       
       PositionController(SetPoint[X_], getDiverX(), SetPoint[Y_], getDiverY(), fakeHeading);
@@ -262,10 +263,12 @@ void loop() {
 
     //Matrix.Print((float*)Thrust,3,1,"thrust");
   //Update ESCs
-  if(THRUSTERS_ENABLED){
+  if(H_THRUSTERS_ENABLED){
     HThruster1.writeMicroseconds(PWMVals(Thrust[0][0]));
     HThruster2.writeMicroseconds(PWMVals(Thrust[1][0]));
     HThruster3.writeMicroseconds(PWMVals(Thrust[2][0])); 
+  }
+  if(V_THRUSTERS_ENABLED){
     VThruster.writeMicroseconds(PWMVals(ZThrust));
   }
 //    HThruster1.writeMicroseconds(1400);

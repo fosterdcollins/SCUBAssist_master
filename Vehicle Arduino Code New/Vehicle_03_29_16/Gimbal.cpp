@@ -5,8 +5,17 @@
 #define VAL_MAX 2300
 #define VAL_MIN 700
 #define DATATRANSFACTOR 1000
+#define _X 0
+#define _Y 1
+#define _Z 2
+#define _ROLL 0
+#define _PITCH 1
+#define _YAW 2
 
+ /////////////     RADIANS!!!!  //////////////////
 float eulerGimbal[3] = {0, 0, 0}; //roll pitch yaw
+ /////////////     RADIANS!!!!  //////////////////
+ 
 float Pdiver_cam[3] = {0, 0, 0}; //x y z (ft)
 float Pdiver[3] = {0, 0, 0};
 
@@ -21,13 +30,13 @@ boolean getValidDiver(void){
 
 void getRelativePose(float heading, float depth){
 
-  heading = (360 -heading) / 180 * 3.1415; 
+  heading = (heading) / 180 * 3.1415; 
   
-  if(GoodPose == 1){
-    Pdiver[0] =  -Pdiver_cam[0]*sin(heading - eulerGimbal[2]) + Pdiver_cam[2]*cos(heading - eulerGimbal[2])*cos(eulerGimbal[1]) + Pdiver_cam[1]*cos(heading - eulerGimbal[2])*sin(eulerGimbal[1]);
-    Pdiver[1] = -Pdiver_cam[0]*cos(heading - eulerGimbal[2]) - Pdiver_cam[2]*sin(heading - eulerGimbal[2])*cos(eulerGimbal[1]) - Pdiver_cam[1]*sin(heading - eulerGimbal[2])*sin(eulerGimbal[1]);
+  if(GoodPose){
+    Pdiver[0] =  -(-Pdiver_cam[_X]*sin(heading + eulerGimbal[_YAW]) + Pdiver_cam[_Y]*cos(heading + eulerGimbal[_YAW])*sin(eulerGimbal[_PITCH]) + Pdiver_cam[_Z]*cos(heading + eulerGimbal[_YAW])*cos(eulerGimbal[_PITCH])) ;
+    Pdiver[1] =  -(-Pdiver_cam[_X]*cos(heading + eulerGimbal[_YAW]) - Pdiver_cam[_Y]*sin(heading + eulerGimbal[_YAW])*sin(eulerGimbal[_PITCH]) - Pdiver_cam[_Z]*sin(heading + eulerGimbal[_YAW])*cos(eulerGimbal[_PITCH])) ;
     
-    float deltaZ =  -Pdiver_cam[1]*cos(eulerGimbal[1]) + Pdiver_cam[2]*sin(eulerGimbal[1]);
+    float deltaZ =  -Pdiver_cam[_Y]*cos(eulerGimbal[_PITCH]) + Pdiver_cam[_Z]*sin(eulerGimbal[_PITCH]);
     Pdiver[2] = depth - deltaZ;
   }
   else{
@@ -39,22 +48,23 @@ void getRelativePose(float heading, float depth){
 }
 
 float getDiverX(void){
-  return  Pdiver[0];
+  return  Pdiver[_X];
 }
 
 float getDiverY(void){
-  return  Pdiver[1];
+  return  Pdiver[_Y];
 }
 
 float getDiverZ(void){
-  return  Pdiver[2];
+  return  Pdiver[_Z];
 }
 
 float getHeadingToDiver(void){
   float head = atan2(-getDiverY(), -getDiverX())*180/3.1415;  
   if(head < 0) head += 360;
   head = 360 - head;
-  //Serial.println(diff);
+  
+  Serial.println(head);
   if(GoodPose){ 
     LastValidHeading = head;
     return head;
@@ -125,7 +135,7 @@ uint16_t checksum(byte Buff[], int num){
 }
 
 
-/////////////////  Edison Comms  ////////////////////////////
+/////////////////////  Edison Comms  ////////////////////////////
 
 
 static char TempBuffer_Edison[40];
@@ -170,9 +180,9 @@ boolean updateVision(void){
 //        Serial.print("Check: ");
 //        Serial.println(Check);
         if(Check == 3){ // valid data
-          Pdiver_cam[0] = (float)Temp[0]/DATATRANSFACTOR; 
-          Pdiver_cam[1] = (float)Temp[1]/DATATRANSFACTOR;
-          Pdiver_cam[2] = (float)Temp[2]/DATATRANSFACTOR;
+          Pdiver_cam[_X] = (float)Temp[0]/DATATRANSFACTOR; 
+          Pdiver_cam[_Y] = (float)Temp[1]/DATATRANSFACTOR;
+          Pdiver_cam[_Z] = (float)Temp[2]/DATATRANSFACTOR;
           GoodPose = 1;
           digitalWrite(34, HIGH); //light on
           digitalWrite(35, LOW);

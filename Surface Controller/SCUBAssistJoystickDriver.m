@@ -11,7 +11,7 @@ Kd_Heading = .36;
 
 Kp_Depth = 6;
 Kd_Depth = 0;
-Ki_Depth = 1;
+Ki_Depth = 0;
 
 Kp_Lateral = 1;
 Kd_Lateral = 0;
@@ -83,9 +83,9 @@ T3_posY = 0;
 T3_VectX = 0;
 T3_VectY = 1;
 
-R1 = -cross([T1_posX T1_posY 0]-COP, [T1_VectX, T1_VectY 0]);
-R2 = -cross([T2_posX T2_posY 0]-COP, [T2_VectX, T2_VectY 0]);
-R3 = -cross([T3_posX T3_posY 0]-COP, [T3_VectX, T3_VectY 0]);
+R1 = cross([T1_posX T1_posY 0]-COP, [T1_VectX, T1_VectY 0]);
+R2 = cross([T2_posX T2_posY 0]-COP, [T2_VectX, T2_VectY 0]);
+R3 = cross([T3_posX T3_posY 0]-COP, [T3_VectX, T3_VectY 0]);
 
 A = [T1_VectX, T2_VectX, T3_VectX;
     T1_VectY, T2_VectY, T3_VectY;
@@ -154,6 +154,7 @@ while (buttons(1) == 0)
     end
     
     % Handle dead pan Theta
+    axes(3) = -axes(3);
     if(axes(3) > torquethresh)
         axes(3) = (axes(3) - torquethresh) / (1 - torquethresh);
     elseif(axes(3) < -torquethresh)
