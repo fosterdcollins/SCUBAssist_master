@@ -10,7 +10,7 @@ float ReceivedData[3][1] = {
 float ZReceivedData = 0;
 int StaleDataCheck = 0;
 char StaleDataFlag = 0;
-float Mode3RecivedData[4] = {0, 0, 0, 0};
+float Mode3RecivedData[4] = {4, 90, 1, 0};
 boolean PossibleMsg = 0;
 
 

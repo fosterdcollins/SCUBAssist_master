@@ -288,7 +288,7 @@ if ( millis() - DisableTime >= 25 ){
 
 
       case 3: // Autonomous
-        int fakeHeading = imu.yaw;
+        int fakeHeading = 0;
         //Cartesian Coordinate Controller
 //        getRelativePose(fakeHeading, currDepth);
 //        SetPoint[_X] = -3;

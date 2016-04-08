@@ -91,15 +91,15 @@ void PositionController2(float RDesired, float HeadingDesired, float XPos, float
   float RPos = sqrt( XPos*XPos + YPos*YPos );
   float thetaPos = getHeadingToDiver();
 
-  Serial.println(RPos);
-  Serial.println(thetaPos);
+
   float thetaDiff = HeadingDesired - thetaPos;
   if(thetaDiff > 180) { thetaDiff -= 360; }
   if(thetaDiff < -180) { thetaDiff += 360; }
   
   float uTheta = Kp_Lateral * thetaDiff;
   float uR = Kp_Lateral * (RDesired - RPos);
-  
+  Serial.println(RPos);
+  Serial.println(thetaPos);
   vCurr[_X] = -(uR*XPos - uTheta*YPos)/RPos;
   vCurr[_Y] = -(uR*YPos + uTheta*XPos)/RPos;  
   
