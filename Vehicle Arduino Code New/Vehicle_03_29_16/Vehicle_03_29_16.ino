@@ -10,7 +10,7 @@
 #include <inttypes.h>
 #include <SBGC.h>
 #include <SBGC_Arduino.h>
-//#include "SoftReset.h"
+#include "SoftReset.h"
 
 int MODE = 0;
 int lastmode;
@@ -81,8 +81,8 @@ float u[3][1];
 float SetPoint[6] = {
   0, 0, 0, 0, 0, 0
 };
-#define X_ 0
-#define Y_ 1
+#define _X 0
+#define _Y 1
 #define YAW 2
 #define YAW_RATE 3
 #define DEPTH 4
@@ -118,7 +118,6 @@ void setup() {
   Serial1.begin(115200);
   Serial2.begin(115200);
   Serial3.begin(115200);
-  delay(50);
 
 
   for (int led = 34; led <= 53; led++) {
@@ -211,7 +210,7 @@ if ( millis() - DisableTime >= 25 ){
   dt = imu.AccTime - timeLast;
   if ( dt >= CONTROLTIME ) {//dt >= CONTROLTIME 
     timeLast = imu.AccTime;
-    //Serial.println(MODE);
+    Serial.println(MODE);
 
 
 
@@ -290,15 +289,28 @@ if ( millis() - DisableTime >= 25 ){
 
       case 3: // Autonomous
         int fakeHeading = imu.yaw;
+        //Cartesian Coordinate Controller
+//        getRelativePose(fakeHeading, currDepth);
+//        SetPoint[_X] = -3;
+//        SetPoint[_Y] = 0;
+//        SetPoint[YAW] = getHeadingToDiver();
+//        SetPoint[YAW_RATE] = 0;
+//        SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth
+//        SetPoint[DEPTH_RATE] = 0;
+//
+//        PositionController2(SetPoint[_X], getDiverX(), SetPoint[_Y], getDiverY(), fakeHeading);
+
+        //Cylindrical Coordinate Controller
         getRelativePose(fakeHeading, currDepth);
-        SetPoint[X_] = -3;
-        SetPoint[Y_] = 0;
+        SetPoint[0] = Mode3RecivedData[0]; //R
+        SetPoint[1] = Mode3RecivedData[1]; //Heading
         SetPoint[YAW] = getHeadingToDiver();
         SetPoint[YAW_RATE] = 0;
         SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth
         SetPoint[DEPTH_RATE] = 0;
 
-        PositionController(SetPoint[X_], getDiverX(), SetPoint[Y_], getDiverY(), fakeHeading);
+        PositionController2(SetPoint[0], SetPoint[1], getDiverX(), getDiverY(), imu.yaw);
+        
         u[0][0] = getVXAuton();
         u[1][0] = getVYAuton();
         u[2][0] = HeadingController(SetPoint[YAW], SetPoint[YAW_RATE], imu.yaw, imu.yaw_rate, MODE);
@@ -339,10 +351,10 @@ if ( millis() - DisableTime >= 25 ){
       //Serial.println(PWMVals(Thrust[0][0]));
       HThruster1.writeMicroseconds(PWMVals(Thrust[0][0]));
       HThruster2.writeMicroseconds(PWMVals(Thrust[1][0]));
-      if(VthrustersEnabled){
       HThruster3.writeMicroseconds(PWMVals(Thrust[2][0]));
+      if(VthrustersEnabled){
+        VThruster.writeMicroseconds(PWMVals(ZThrust));
       }
-      //VThruster.writeMicroseconds(PWMVals(ZThrust));
     }
     //    HThruster1.writeMicroseconds(1400);
     //    HThruster2.writeMicroseconds(1400);
@@ -387,69 +399,61 @@ void SendTelem(void) {
   //delayMicroseconds(10);
 }
 
-//void serialEvent1(){
-//
-//
-//  Serial.println(Serial1.available());
-//  if( Serial1.available() > 8 ){  }
-//
-//  Serial.write( Serial1.read() );
-//}
 
 
 ////////// Debug Commands //////////////
-//void serialEvent() {
-//  Serial.println("Got Command");
-//  char inChar = Serial.read();
+void serialEvent() {
+  Serial.println("Got Command");
+  char inChar = Serial.read();
 
-//  switch (inChar) {
-//    case 'G':
-//      Serial.println("Gimbal Enabled");
-//      zeroGimbal( imu.yaw );
-//      enableGimbal();
-//      break;
-//
-//    case 'g':
-//      Serial.println("Gimbal Disabled");
-//      delay(20);
-//      disableGimbal();
-//      disableGimbal();
-//      disableGimbal();
-//      disableGimbal();
-//      disableGimbal();
-//      break;
-//
-//    case 'T':
-//      Serial.println("Thrusters Enabled");
-//      thrustersEnabled = 1;
-//      break;
-//
-//    case 't':
-//      Serial.println("Thrusters Disabled");
-//      thrustersEnabled = 0;
-//      break;
-//
-//    case 'R':
-//      Serial.println("Restarting.............");
-//      //soft_restart();
-//      break;
-//
-//    case '1':
-//      Serial.println("Mode 1");
-//      MODE = 1;
-//      break;
-//
-//    case '2':
-//      Serial.println("Mode 2");
-//      MODE = 2;
-//      break;
-//
-//    case '3':
-//      Serial.println("Mode 3");
-//      MODE = 3;
-//      break;
-//  }
-//}
+  switch (inChar) {
+    case 'G':
+      Serial.println("Gimbal Enabled");
+      zeroGimbal( imu.yaw );
+      enableGimbal();
+      break;
+
+    case 'g':
+      Serial.println("Gimbal Disabled");
+      delay(20);
+      disableGimbal();
+      disableGimbal();
+      disableGimbal();
+      disableGimbal();
+      disableGimbal();
+      break;
+
+    case 'T':
+      Serial.println("Thrusters Enabled");
+      thrustersEnabled = 1;
+      break;
+
+    case 't':
+      Serial.println("Thrusters Disabled");
+      thrustersEnabled = 0;
+      break;
+
+    case 'R':
+      Serial.println("Restarting.............");
+      soft_restart();
+      break;
+
+    case '1':
+      Serial.println("Mode 1");
+      MODE = 1;
+      break;
+
+    case '2':
+      Serial.println("Mode 2");
+      MODE = 2;
+      break;
+
+    case '3':
+      Serial.println("Mode 3");
+      MODE = 3;
+      break;
+  }
+}
 
 
 void serialEvent3() {

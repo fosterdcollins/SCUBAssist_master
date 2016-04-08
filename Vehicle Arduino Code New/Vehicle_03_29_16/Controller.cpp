@@ -86,11 +86,22 @@ void PositionController(float XDesired, float XPos, float YDesired, float YPos, 
   }
 }
 
-void PositionController2(float XDesired, float XPos, float YDesired, float YPos, float yaw){
+void PositionController2(float RDesired, float HeadingDesired, float XPos, float YPos, float yaw){
   float vCurr[2];
-  float RDesired = sqrt( XDesired*XDesired + YDesired*YDesired );
-  vCurr[1] = YDesired - YPos;
+  float RPos = sqrt( XPos*XPos + YPos*YPos );
+  float thetaPos = getHeadingToDiver();
+
+  Serial.println(RPos);
+  Serial.println(thetaPos);
+  float thetaDiff = HeadingDesired - thetaPos;
+  if(thetaDiff > 180) { thetaDiff -= 360; }
+  if(thetaDiff < -180) { thetaDiff += 360; }
   
+  float uTheta = Kp_Lateral * thetaDiff;
+  float uR = Kp_Lateral * (RDesired - RPos);
+  
+  vCurr[_X] = -(uR*XPos - uTheta*YPos)/RPos;
+  vCurr[_Y] = -(uR*YPos + uTheta*XPos)/RPos;  
   
   yaw = yaw*3.1415/180;
   //Serial.println(yaw);

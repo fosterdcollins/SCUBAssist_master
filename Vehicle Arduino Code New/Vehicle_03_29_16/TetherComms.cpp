@@ -10,8 +10,10 @@ float ReceivedData[3][1] = {
 float ZReceivedData = 0;
 int StaleDataCheck = 0;
 char StaleDataFlag = 0;
-
+float Mode3RecivedData[4] = {0, 0, 0, 0};
 boolean PossibleMsg = 0;
+
+
 
 
 
@@ -27,7 +29,7 @@ boolean updateControls(void){
     StaleDataCheck--;
     if(StaleDataCheck < 0){
       StaleDataFlag = 1;
-      MODE = 0;
+      //MODE = 0;
       ReceivedData[0][0] = 0;
       ReceivedData[1][0] = 0;
       ReceivedData[2][0] = 0;
@@ -89,7 +91,26 @@ boolean updateControls(void){
           //        Serial.println(ZDesiredForce);
         }
       }
-      else if(TempBuffer[0] == 'G'){
+      
+      else if(TempBuffer[0] == 'S'){
+        long Temp[4]; 
+        Serial.println("Setpoint");
+        i = 0;
+        int Check = sscanf(TempBuffer ,"G%ld,%ld,%ld,%ld;", &Temp, &Temp[1], &Temp[2], &Temp[3]);  
+        if(Check == 4){ // valid data
+          Mode3RecivedData[0] = (float)Temp[0]/100; //R
+          Mode3RecivedData[1] = (float)Temp[1]/10;  //Heading
+          Mode3RecivedData[2] = (float)Temp[2]/100; //Z
+          Mode3RecivedData[3] = (float)Temp[3]/100; //Gimbal Pitch
+          Serial.println("New Setpoint");
+          Serial.println(Mode3RecivedData[0]);
+          Serial.println(Mode3RecivedData[1]);
+          Serial.println(Mode3RecivedData[2]);
+          Serial.println(Mode3RecivedData[3]);
+        }
+      }
+
+     else if(TempBuffer[0] == 'G'){
         long Temp[7]; 
         float Gains[7];
         Serial.println("Gains");

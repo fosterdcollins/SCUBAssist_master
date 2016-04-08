@@ -27,7 +27,7 @@ Theta = 180;
 Z = 0;
 gimbalPitch = 20;
 
-SetPoint = round([R, Theta, Z, gimbalPitch])
+SetPoint = round([R, Theta, Z, gimbalPitch]
 
 if ArduinoPresent
     arduino = serial('COM54','BaudRate',115200); %change COM port as needed
