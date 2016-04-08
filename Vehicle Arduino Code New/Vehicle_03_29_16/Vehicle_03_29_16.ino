@@ -7,14 +7,19 @@
 #include <Wire.h>
 #include <stdio.h>
 #include "MS5837.h"
+#include <inttypes.h>
+#include <SBGC.h>
+#include <SBGC_Arduino.h>
 
 #define THRUSTERS_ENABLED 0
 
 int MODE = 0;
 int lastmode;
 extern int MODE;
+UM7 imu;
 
 void SendTelem(void);
+void processGimbal( void );
 
 #define SendingEnabled 1
 #define ENABLE_TRANSMIT digitalWrite(22, HIGH)
@@ -25,6 +30,10 @@ int battery = 0;
 float currDepth = 0;
 float dt;
 boolean compassFlag;
+int readtype = 1;
+int ms = 0;
+int lastms = 0;
+long GimbalTimeLast = millis();
 
 const float pi = 3.1415926;
 
@@ -76,7 +85,6 @@ float SetPoint[6] = {
 #define DEPTH 4
 #define DEPTH_RATE 5
 
-UM7 imu;
 MS5837 depthSensor;
 
 Servo HThruster1; //Front Left
@@ -96,19 +104,35 @@ void setup() {
   HThruster3.writeMicroseconds(1500);
   VThruster.writeMicroseconds(1500);
   Wire.begin();
+ 
+  Serial.begin(115200);
+  //Serial1.begin(115200);
+  Serial2.begin(115200);
+  Serial3.begin(115200);
+  delay(50);
 
+  
   for(int led = 34; led <= 53; led++){
     pinMode(led, OUTPUT);
     digitalWrite(led, LOW);
-    delay(100);
+    delay(50);
   }
 
   for(int led = 34; led <= 53; led++){
     digitalWrite(led, HIGH);
   }
   
-  Serial1.begin(115200);
-  Serial2.begin(115200);
+  while (Serial3.available()) {
+    imu.encode(Serial3.read());
+  }
+  Serial.println(imu.yaw);
+  initGimbal(imu.yaw);
+
+  pinMode(27, OUTPUT); //GoPro Pin
+  pinMode(26, OUTPUT); //GoPro Pin
+  digitalWrite(27, HIGH);
+  digitalWrite(26, HIGH);
+  
   pinMode(22, OUTPUT);
   DISABLE_TRANSMIT;
 
@@ -118,8 +142,7 @@ void setup() {
   pinMode(30, OUTPUT);
   digitalWrite(30, HIGH);
 
-  Serial.begin(115200);
-  Serial3.begin(115200);
+
   pinMode(13, OUTPUT);
 
   MODE = 1;
@@ -130,20 +153,46 @@ void setup() {
 
 void loop() {
   //Serial.println("mainloop");
+  
+  //Serial.println(getPitch());
+  //Request Gimbal Positions
+//  processGimbal();
+  if(millis() - GimbalTimeLast > 30){ //
+//    Serial.println("here");
+    setAnglesRel( 10, -20, imu.yaw );
+  } 
+  
+  
+  //Depth Sensor
+  ms = millis();
+  if ( ms - lastms >= 20 ) { //
+    lastms = ms;
+    if (readtype == 1) {
+      depthSensor.read1();
+      readtype = 2;
+    } 
+    else if (readtype == 2) {
+      depthSensor.read2();
+      readtype = 3;
+    } 
+    else if (readtype == 3) {
+      depthSensor.read3();
+      currDepth = depthSensor.depth() * 3.28; //ft
+      //Serial.println(currDepth);
+      readtype = 1;
+    }
+  }
+
+  //Main Controls
+  compassFlag = updateControls();
+  SendTelem();
   dt = imu.AccTime - timeLast;
   if ( dt >= CONTROLTIME ) {
     timeLast = imu.AccTime;
-    //Serial.println(dt);
-    depthSensor.read();
-    currDepth = depthSensor.depth() * 3.28; //ft
-    compassFlag = updateControls();
-    SendTelem();
-
-
+    //Serial.println(imu.yaw);
+    
     switch (MODE) {
     case 0: // Debug
-      
-      //SendTelem();
       //Serial.println("MODE0");
       Matrix.Multiply((float*)Ainv, (float*)ReceivedData, 3, 3, 1, (float*)Thrust);
       lastmode = 0;
@@ -153,8 +202,6 @@ void loop() {
 
 
     case 1: // Tethered, Open Loop
-      //compassFlag = updateControls();
-      //SendTelem();
       //Serial.println("MODE1");
       Matrix.Multiply((float*)Ainv, (float*)ReceivedData, 3, 3, 1, (float*)Thrust);
       ZThrust = ZReceivedData;
@@ -312,6 +359,15 @@ void SendTelem(void) {
   }
   //delayMicroseconds(10);
 }
+
+//void serialEvent1(){
+//
+//  
+//  Serial.println(Serial1.available());
+//  if( Serial1.available() > 8 ){  }
+//   
+//  Serial.write( Serial1.read() );
+//}
 
 void serialEvent3() {
   //digitalWrite(30, HIGH);

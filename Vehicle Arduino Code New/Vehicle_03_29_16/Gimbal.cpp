@@ -1,19 +1,39 @@
+#include <inttypes.h>
+
 #include "Arduino.h"
 #include "Gimbal.h"
 #include "MatrixMath.h"
 
+
 #define VAL_MAX 2300
 #define VAL_MIN 700
 #define DATATRANSFACTOR 1000
+#define GIMBALSTARTOFFSET 193
+
+HardwareSerial &Gimbal = Serial1;
+
+SBGC_cmd_control_t c;
+SerialCommand cmd;
+static SBGC_cmd_realtime_data_t rt_data;
+
+static uint8_t is_connected = 0;
+float euler[3] = {0, 0, 0};
+
+
 
 float eulerGimbal[3] = {0, 0, 0}; //roll pitch yaw
 float Pdiver_cam[3] = {0, 0, 0}; //x y z (ft)
 float Pdiver[3] = {0, 0, 0};
 
+float gimbalOffset = 0;
+float initHeading = 0;
+
 boolean GoodPose = 0;
 float LastValidHeading = 0;
 
 uint16_t checksum(byte Buff[], int num);
+void disableGimbal( void );
+void enableGimbal( void );
 
 boolean getValidDiver(void){
   return GoodPose;
@@ -24,10 +44,10 @@ void getRelativePose(float heading, float depth){
   heading = (360 -heading) / 180 * 3.1415; 
   
   if(GoodPose == 1){
-    Pdiver[0] =  -Pdiver_cam[0]*sin(heading - eulerGimbal[2]) + Pdiver_cam[2]*cos(heading - eulerGimbal[2])*cos(eulerGimbal[1]) + Pdiver_cam[1]*cos(heading - eulerGimbal[2])*sin(eulerGimbal[1]);
-    Pdiver[1] = -Pdiver_cam[0]*cos(heading - eulerGimbal[2]) - Pdiver_cam[2]*sin(heading - eulerGimbal[2])*cos(eulerGimbal[1]) - Pdiver_cam[1]*sin(heading - eulerGimbal[2])*sin(eulerGimbal[1]);
+    Pdiver[0] =  -Pdiver_cam[0]*sin(heading - eulerGimbal[YAW]) + Pdiver_cam[2]*cos(heading - eulerGimbal[YAW])*cos(eulerGimbal[PITCH]) + Pdiver_cam[1]*cos(heading - eulerGimbal[YAW])*sin(eulerGimbal[PITCH]);
+    Pdiver[1] =  -Pdiver_cam[0]*cos(heading - eulerGimbal[YAW]) - Pdiver_cam[2]*sin(heading - eulerGimbal[YAW])*cos(eulerGimbal[PITCH]) - Pdiver_cam[1]*sin(heading - eulerGimbal[YAW])*sin(eulerGimbal[PITCH]);
     
-    float deltaZ =  -Pdiver_cam[1]*cos(eulerGimbal[1]) + Pdiver_cam[2]*sin(eulerGimbal[1]);
+    float deltaZ =  -Pdiver_cam[1]*cos(eulerGimbal[PITCH]) + Pdiver_cam[2]*sin(eulerGimbal[PITCH]);
     Pdiver[2] = depth - deltaZ;
   }
   else{
@@ -63,66 +83,126 @@ float getHeadingToDiver(void){
   
 }
 
-void Set_rpy(float roll, float pitch, float yaw){
+float getPitch( void ){
+  return eulerGimbal[1]; 
+}
+
+float getYaw( void ){
+  return eulerGimbal[2]; 
+}
+
+void requestAngles( void ){
+  Serial.println("request");
+  SerialCommand cmd;
+  cmd.init(73);
+  sbgc_parser.send_cmd(cmd, 0);
+}
+
+void setAnglesRel( float yaw, float pitch, float heading ){
+  c.anglePITCH = SBGC_DEGREE_TO_ANGLE(pitch);
+  c.angleYAW = SBGC_DEGREE_TO_ANGLE(yaw + heading + gimbalOffset);
+  SBGC_cmd_control_send(c, sbgc_parser);
+  Serial.println(yaw + heading + gimbalOffset);
+}
+
+void setAnglesAbs( float yaw, float pitch){
+  c.anglePITCH = SBGC_DEGREE_TO_ANGLE(pitch);
+  c.angleYAW = SBGC_DEGREE_TO_ANGLE(yaw + initHeading + gimbalOffset);
+  SBGC_cmd_control_send(c, sbgc_parser);
+}
+
+void initGimbal( float heading ){ 
+  Serial.println("Gimbal Initialized...");
+  Gimbal.begin(115200);
+  pinMode(28, OUTPUT); //Gimbal
+  powerOnGimbal();
+  delay(3);
+  disableGimbal();
+  delay(1000);
   
-  int rollConv = map(roll, -90, 90, VAL_MIN, VAL_MAX);
-  int pitchConv = map(pitch, -180, 180, VAL_MAX, VAL_MIN);
-  int yawConv = map(yaw, 180, -180, VAL_MIN, VAL_MAX);
-//  
-//    Serial.println(rollConv);
-//    Serial.println(pitchConv);
-//    Serial.println(yawConv);
+  SBGC_Demo_setup(&Gimbal);
     
-  byte data[11];
-  data[0] = 0xFA;
-  data[1] = 0x06;
-  data[2] = 0x12;
-  data[3] = (byte)(pitchConv & 0x00FF);
-  data[4] = (byte)(pitchConv >> 8);
-  data[5] = (byte)(rollConv & 0x00FF);
-  data[6] = (byte)(rollConv >> 8);
-  data[7] = (byte)(yawConv & 0x00FF);
-  data[8] = (byte)(yawConv >> 8);
-  
-  uint16_t crc = checksum(data, 9);
-  Serial.println(crc);
-  
-  data[9] = (byte)(crc & 0x00FF);
-  data[10] = (byte)(crc >> 8);
-  Serial3.write(data, 11);
-  return;
+  c.mode = SBGC_CONTROL_MODE_ANGLE;
+  c.speedROLL = c.speedPITCH = c.speedYAW = 50 * SBGC_SPEED_SCALE;
+  pinMode(35, OUTPUT);
+  zeroGimbal(heading);
 }
 
-void centerGimbal(){
+void zeroGimbal(float heading){
+    disableGimbal();
+    delay(500);
+    while( getYaw() == 0){
+      digitalWrite(35, LOW);
+      requestAngles();
+      delay(40);
+      processGimbal();
+    }
+    Serial.println(heading);
+    digitalWrite(35, HIGH);
+    initHeading = heading;
+    gimbalOffset = getYaw() + GIMBALSTARTOFFSET - heading;
+    enableGimbal();
+    c.anglePITCH = SBGC_DEGREE_TO_ANGLE(0);
+    c.angleYAW = SBGC_DEGREE_TO_ANGLE(gimbalOffset + heading);
+    SBGC_cmd_control_send(c, sbgc_parser);
+  }
   
-  byte data[11];
-  data[0] = 0xFA;
-  data[1] = 0x06;
-  data[2] = 0x12;
-  
-  uint16_t crc = checksum(data, 9);
-  
-  data[9] = (byte)(crc & 0x00FF);
-  data[10] = (byte)(crc >> 8);
-  
-  Serial3.write(data, 11);
-  return;
-}
-
-uint16_t checksum(byte Buff[], int num){
-  uint16_t checksum = 0;
-  
-  for(int ibyte = 0; ibyte < num; ibyte++){
-    char tempByte = Buff[ibyte];
-     //Serial.println("Byte");
-     //Serial.println(checksum);
-    for(int i = 0; i < 8; i++){
-      checksum += (tempByte >> i) && 0x01;
-      //Serial.println(checksum);
+void processGimbal() {
+  //Serial.println("here");
+  while(sbgc_parser.read_cmd()) {
+    
+    SerialCommand &cmd = sbgc_parser.in_cmd;
+    //cmd = sbgc_parser.in_cmd;
+    
+    uint8_t error = 0;
+    Serial.println(cmd.id);  
+    switch(cmd.id) {
+    // Receive realtime data
+    case 73:
+      error = SBGC_cmd_realtime_data_unpack(rt_data, cmd);
+      //Serial.write(cmd.data, cmd.len); 
+      eulerGimbal[0] = (int)((cmd.data[1] << 8) | cmd.data[0])  * SBGC_ANGLE_DEGREE_SCALE;
+      eulerGimbal[1] = (int)((cmd.data[7] << 8) | cmd.data[6])  * SBGC_ANGLE_DEGREE_SCALE;
+      eulerGimbal[2] = (int)((cmd.data[13] << 8) | cmd.data[12])* SBGC_ANGLE_DEGREE_SCALE;
+      //Serial.println("\n");
+      Serial.println(eulerGimbal[0]);
+      Serial.println(eulerGimbal[1]);
+      Serial.println(eulerGimbal[2]);
+      break;
     }
   }
-  return checksum;
 }
+
+void centerGimbal( void ){
+  c.anglePITCH = SBGC_DEGREE_TO_ANGLE(0);
+  c.angleYAW = SBGC_DEGREE_TO_ANGLE(0);
+}
+
+void powerOnGimbal(void){
+  digitalWrite(28, HIGH);
+}
+
+void powerOffGimbal(void){
+  digitalWrite(28, LOW);
+}
+
+void enableGimbal(void){
+  Serial.println("Enable Gimbal");
+  SerialCommand cmd;
+  cmd.init(77);
+  sbgc_parser.send_cmd(cmd, 0);
+  sbgc_parser.send_cmd(cmd, 0);
+}
+
+void disableGimbal(void){
+  Serial.println("Disable Gimbal");
+  SerialCommand cmd;
+  cmd.init(109);
+  sbgc_parser.send_cmd(cmd, 0);
+  sbgc_parser.send_cmd(cmd, 0);
+}
+
+
 
 
 /////////////////  Edison Comms  ////////////////////////////

@@ -10,6 +10,7 @@
 
 long zero = 101325; //101325
 
+
 MS5837::MS5837() {
   fluidDensity = 1029;
 }
@@ -39,9 +40,12 @@ void MS5837::init() {
 
   if ( crcCalculated == crcRead ) {
     // Success
-  } else {
+  } 
+  else {
     // Failure - try again?
   }
+  
+
   //setzero();
 }
 
@@ -49,14 +53,32 @@ void MS5837::setFluidDensity(float density) {
   fluidDensity = density;
 }
 
-void MS5837::read() {
+void MS5837::depthRead() {
+//  Serial.println("depthRead");
+//  if (readtype == 1) { 
+//    read1();
+//    readtype = 2;
+//  }
+//  else if (readtype == 2) { 
+//    read2();
+//    readtype = 3;
+//  }
+//  else if (readtype == 3) { 
+//    read3(); 
+//    readtype = 1;
+//  }  
+}
+
+void MS5837::read1() {  //STEP 1
   // Request D1 conversion
   Wire.beginTransmission(MS5837_ADDR);
   Wire.write(MS5837_CONVERT_D1_8192);
   Wire.endTransmission();
 
-  delay(20); // Max conversion time per datasheet
+  //delay(20); // Max conversion time per datasheet
+}
 
+void MS5837::read2() {  //STEP 2
   Wire.beginTransmission(MS5837_ADDR);
   Wire.write(MS5837_ADC_READ);
   Wire.endTransmission();
@@ -72,8 +94,10 @@ void MS5837::read() {
   Wire.write(MS5837_CONVERT_D2_8192);
   Wire.endTransmission();
 
-  delay(20); // Max conversion time per datasheet
+  //delay(20); // Max conversion time per datasheet
+}
 
+void MS5837::read3() {  //STEP 3
   Wire.beginTransmission(MS5837_ADDR);
   Wire.write(MS5837_ADC_READ);
   Wire.endTransmission();
@@ -85,7 +109,6 @@ void MS5837::read() {
   D2 = (D2 << 8) | Wire.read();
 
   //Serial.println("----");
-
   calculate();
 }
 
@@ -183,13 +206,15 @@ uint8_t MS5837::crc4(uint16_t n_prom[]) {
   for ( uint8_t i = 0 ; i < 16; i++ ) {
     if ( i % 2 == 1 ) {
       n_rem ^= (uint16_t)((n_prom[i >> 1]) & 0x00FF0);
-    } else {
+    } 
+    else {
       n_rem ^= (uint16_t)(n_prom[i >> 1] >> 8);
     }
     for ( uint8_t n_bit = 8 ; n_bit > 0 ; n_bit-- ) {
       if ( n_rem & 0x8000 ) {
         n_rem = (n_rem << 1) ^ 0x3000;
-      } else {
+      } 
+      else {
         n_rem = (n_rem << 1);
       }
     }
@@ -199,3 +224,4 @@ uint8_t MS5837::crc4(uint16_t n_prom[]) {
 
   return n_rem ^ 0x00;
 }
+

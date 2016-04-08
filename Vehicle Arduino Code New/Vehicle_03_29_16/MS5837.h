@@ -50,7 +50,10 @@ class MS5837 {
     void setzero(void);
     /** The read from I2C takes up for 40 ms, so use sparingly is possible.
      */
-    void read();
+    void depthRead();
+    void read1();
+    void read2();
+    void read3();
 
     /** This function loads the datasheet test case values to verify that
      *  calculations are working correctly. No example checksum is provided
