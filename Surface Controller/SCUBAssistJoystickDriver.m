@@ -2,7 +2,8 @@ close all; clear all;
 %fclose(arduino);
 ArduinoPresent = 1;
 CompassEnabled = 1;
-PromptSaving = 0;
+PromptSaving = 1;
+PlottingEnabled = 0;
 mode = 1; % 0=debug, 1=open, 2=closed, 3=auto
 
 %%%%%%%%%%%%%%%%%%%%  Gains  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -27,19 +28,19 @@ Theta = 180;
 Z = 0;
 gimbalPitch = 20;
 
-SetPoint = round([R, Theta, Z, gimbalPitch])
+SetPoints = round([R, Theta, Z, gimbalPitch])
 
 if ArduinoPresent
-    arduino = serial('COM54','BaudRate',115200); %change COM port as needed
+    arduino = serial('COM3','BaudRate',115200); %change COM port as needed
     fopen(arduino)
-%     s.BytesAvailableFcn = @ArduinoSerial;
-%     arduino.BytesAvailableFcnMode = 'terminator';
-%     arduino.Terminator = ';';
+    %     s.BytesAvailableFcn = @ArduinoSerial;
+    %     arduino.BytesAvailableFcnMode = 'terminator';
+    %     arduino.Terminator = ';';
     set(arduino,'Timeout',.025);
     pause(2);
     dataStrGain = ['G' num2str(Gains(1)) ',' num2str(Gains(2)) ',' num2str(Gains(3)) ',' num2str(Gains(4)) ',' num2str(Gains(5)) ',' num2str(Gains(6)) ',' num2str(Gains(7)) ';'];
     dataStrGain
-    dataStrSetPoint = ['S' num2str(SetPoints(1))*100 ',' num2str(SetPoints(2))*10 ',' num2str(SetPoints(3))*100 ',' num2str(SetPoints(4))*100 ';']
+    dataStrSetPoint = ['S' num2str(SetPoints(1)*100) ',' num2str(SetPoints(2)*10) ',' num2str(SetPoints(3)*100) ',' num2str(SetPoints(4)*100) ';']
     for i = 1:2
         fprintf(arduino, dataStrGain);
         fprintf(arduino, dataStrSetPoint);
@@ -111,20 +112,23 @@ accel_1g = [16900 16400 16700]; %1g in x,y,z
 accel_scale = accel_1g - accel_0g;
 
 %ploting
-figure;
-hold on
-axis equal
-axis([-8 8 -13 13])
-plot([T1_posX, T1_posX+T1_VectX], [T1_posY, T1_posY+T1_VectY], 'b-')
-plot([T2_posX, T2_posX+T2_VectX], [T2_posY, T2_posY+T2_VectY], 'b-')
-plot([T3_posX, T3_posX+T3_VectX], [T3_posY, T3_posY+T3_VectY], 'b-')
-plot([T1_posX], [T1_posY], 'b.')
-plot([T2_posX], [T2_posY], 'b.')
-plot([T3_posX], [T3_posY], 'b.')
+if(PlottingEnabled)
+    figure;
+    hold on
+    axis equal
+    axis([-8 8 -13 13])
+    plot([T1_posX, T1_posX+T1_VectX], [T1_posY, T1_posY+T1_VectY], 'b-')
+    plot([T2_posX, T2_posX+T2_VectX], [T2_posY, T2_posY+T2_VectY], 'b-')
+    plot([T3_posX, T3_posX+T3_VectX], [T3_posY, T3_posY+T3_VectY], 'b-')
+    plot([T1_posX], [T1_posY], 'b.')
+    plot([T2_posX], [T2_posY], 'b.')
+    plot([T3_posX], [T3_posY], 'b.')
+    
+    M1 = plot([T1_posX, T1_posX], [T1_posY, T1_posY], 'r-');
+    M2 = plot([T2_posX, T2_posX], [T2_posY, T2_posY], 'r-');
+    M3 = plot([T3_posX, T3_posX], [T3_posY, T3_posY], 'r-');
+end
 
-M1 = plot([T1_posX, T1_posX], [T1_posY, T1_posY], 'r-');
-M2 = plot([T2_posX, T2_posX], [T2_posY, T2_posY], 'r-');
-M3 = plot([T3_posX, T3_posX], [T3_posY, T3_posY], 'r-');
 [axes, buttons, povs] = read(h.joy);
 
 loop = 0;
@@ -149,7 +153,7 @@ while (buttons(1) == 0)
     if (buttons(11) && mode ~= 3)
         mode = 3;
     end
-
+    
     % Handle dead pan XY
     %r = (norm([axes(1), axes(2)]) - xythresh)/(1-xythresh);
     r = (norm([-axes(2), axes(1)]) - xythresh)/(1-xythresh);
@@ -173,7 +177,7 @@ while (buttons(1) == 0)
     else
         axes(3) = 0;
     end
-      
+    
     % Handle dead pan Z
     if(axes(4) > zthresh)
         axes(4) = (axes(4) - zthresh)/(1 - zthresh);
@@ -186,31 +190,31 @@ while (buttons(1) == 0)
     %Mode Switch
     if mode == 1 % open loop
         ForceRequested = [axes(1) axes(2)].*10.*(HG_Open/10);
-
+        
         TorqueRequested = -axes(3)*50*RG_Open/10;
-
+        
         ZForceRequested = -(axes(4))*10*VG_Open/10;
-
-    elseif mode == 2 % closed loop  
+        
+    elseif mode == 2 % closed loop
         
         ForceRequested = [axes(1) axes(2)].*10.*(HG_Closed/10);
         
         axes(3);
         omega = axes(3)*90*RG_Closed/10; %Max 90 deg/sec
         TorqueRequested = omega; %rename for sending
-
+        
         Zdot = -(axes(4))*2*VG_Closed/10;
         ZForceRequested = Zdot; %rename for sending
-
+        
     end
-
+    
     %Force
     Fdesired = [ForceRequested, TorqueRequested]';
     
     %% send to arduino
     SendingData = round([Fdesired; ZForceRequested]*1000);
     dataStr = ['C' num2str(mode) ',' num2str(SendingData(1)) ',' num2str(SendingData(2)) ',' num2str(SendingData(3)) ',' num2str(SendingData(4)) ';\n']
-   
+    
     if(ArduinoPresent)
         fprintf(arduino, dataStr);
         sendingLog(end+1,:) = [mode, SendingData'];
@@ -219,10 +223,10 @@ while (buttons(1) == 0)
     
     %% Reciving Compass
     if(ArduinoPresent && CompassEnabled)
-%         while arduino.BytesAvailable == 0
-%             pause(.001);
-%             arduino.BytesAvailable
-%         end
+        %         while arduino.BytesAvailable == 0
+        %             pause(.001);
+        %             arduino.BytesAvailable
+        %         end
         if(arduino.BytesAvailable ~= 0)
             RecivedDataStr = fgetl(arduino);
             Telem = 0;
@@ -230,7 +234,7 @@ while (buttons(1) == 0)
             RecivedDataStr
             [Telem, count] = sscanf(RecivedDataStr,'%i,%i,%i,%i,%i,%i,%i,%i,%i,%i;');
             % Batt, Yaw, Roll, Pitch, Depth, Ax, Ay, Az, YawSet, DepthSet
-                        
+            
             if length(Telem) >= 10 && Telem(1) ~= -1
                 if PromptSaving
                     receivingLog(end+1,:) = Telem';
@@ -249,7 +253,7 @@ while (buttons(1) == 0)
                         '\nAz: ' num2str(Telem(8)/1000)...
                         ]));
                 else
-                   disp(sprintf(['\nBatt: ' num2str(Telem(1)) ...
+                    disp(sprintf(['\nBatt: ' num2str(Telem(1)) ...
                         '\nYaw = ' num2str(Telem(2)/100 + 180) ...
                         '\nPitch = ' num2str(Telem(4)/100) ...
                         '\nRoll = ' num2str(Telem(3)/100) ...
@@ -263,19 +267,24 @@ while (buttons(1) == 0)
                 if Telem(1) < 870 %830
                     disp('LOW BATTERY');
                 end
+            else
+                receivingLog(end+1,:) = zeros(1,10);
             end
+            
         end
-
+        
     end
     
     %% Force Balance
     ThrustRequested = Ainv*Fdesired;
     PWM_vals = PWM([ThrustRequested', ZForceRequested])';
     
-    set(M1, 'XData', [T1_posX, (T1_posX+T1_VectX*ThrustRequested(1))], 'YData', [T1_posY, (T1_posY+T1_VectY*ThrustRequested(1))])
-    set(M2, 'XData', [T2_posX, (T2_posX+T2_VectX*ThrustRequested(2))], 'YData', [T2_posY, (T2_posY+T2_VectY*ThrustRequested(2))])
-    set(M3, 'XData', [T3_posX, (T3_posX+T3_VectX*ThrustRequested(3))], 'YData', [T3_posY, (T3_posY+T3_VectY*ThrustRequested(3))])
-  
+    if(PlottingEnabled)
+        set(M1, 'XData', [T1_posX, (T1_posX+T1_VectX*ThrustRequested(1))], 'YData', [T1_posY, (T1_posY+T1_VectY*ThrustRequested(1))])
+        set(M2, 'XData', [T2_posX, (T2_posX+T2_VectX*ThrustRequested(2))], 'YData', [T2_posY, (T2_posY+T2_VectY*ThrustRequested(2))])
+        set(M3, 'XData', [T3_posX, (T3_posX+T3_VectX*ThrustRequested(3))], 'YData', [T3_posY, (T3_posY+T3_VectY*ThrustRequested(3))])
+    end
+    
     while toc-time < LoopTime
         pause(.0001);
     end
@@ -291,12 +300,12 @@ if ArduinoPresent
     if PromptSaving == 1
         YesSave = questdlg('Save Logs?');
         if (length(YesSave) == 3)
-        clock = clock; 
-        save(['Log_' num2str(clock(2)) '-' num2str(clock(3)) '_' num2str(clock(4))...
-        '-' num2str(clock(5)) '-' num2str(clock(6)) '.mat']);
+            clock = clock;
+            save(['Log_' num2str(clock(2)) '-' num2str(clock(3)) '_' num2str(clock(4))...
+                '-' num2str(clock(5)) '-' num2str(clock(6)) '.mat']);
         end
     end
-  
+    
 end
 
 close all;
