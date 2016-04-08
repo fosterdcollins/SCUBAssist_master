@@ -10,11 +10,12 @@
 #define Y_MAX -90
 #define Y_MIN 90
 
-#define ROLL 0
-#define PITCH 1
-#define YAW 2
-
-
+#define _ROLL 0
+#define _PITCH 1
+#define _YAW 2
+#define _X 0
+#define _Y 1
+#define _Z 2
 
 
 void setAnglesRel( float yaw, float pitch, float heading );
@@ -27,7 +28,10 @@ void powerOnGimbal(void);
 void requestAngles( void );
 float getPitch( void );
 float getYaw( void );
-void zeroGimbal( float heading);
+void disableGimbal( void );
+void enableGimbal( void );
+void zeroGimbal( float heading );
+void operateGimbal( float heading, int Mode );
 
 float getDiverX(void);
 float getDiverY(void);
@@ -36,6 +40,8 @@ boolean getValidDiver(void);
 
 void getRelativePose(float heading, float depth);
 float getHeadingToDiver(void);
+float getHeadingToDiverRel(float heading);
+float getPitchToDiver(void);
 boolean updateVision(void);
 
 

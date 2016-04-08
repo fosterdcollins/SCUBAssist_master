@@ -20,7 +20,7 @@ RPitch = [[1 0 0];...
           [0, cos(pitch), -sin(pitch)];...
           [0, sin(pitch),  cos(pitch)]];
 
-p = [x, y, z]';g
+p = [x, y, z]';
 assume(x,'real')
 assume(y,'real')
 assume(z,'real')

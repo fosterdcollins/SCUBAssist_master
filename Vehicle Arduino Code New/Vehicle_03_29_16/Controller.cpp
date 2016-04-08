@@ -3,6 +3,10 @@
 #include "Gimbal.h"
 #include "Math.h"
 
+#define _X 0
+#define _Y 1
+#define _Z 2
+
 //controller Gains
 float Kp_Heading = .75;
 float Kd_Heading = .35;
@@ -20,11 +24,11 @@ float Kd_Lateral = 0;
 float FAuton[2] = {0, 0};
 
 float getVXAuton( void ){
-  return FAuton[0];
+  return FAuton[_X];
 }
 
 float getVYAuton( void ){
-  return FAuton[1];
+  return FAuton[_Y];
 }
 
 float HeadingController(float HeadingDesired, float HeadingRateDesired, float heading, float HeadingRate, int mode){
@@ -39,7 +43,7 @@ float HeadingController(float HeadingDesired, float HeadingRateDesired, float he
   //Serial.print(HeadingError);
   //Serial.print("\t");
 
-  float u =  -Kp_Heading * HeadingError + -Kd_Heading * (HeadingRateDesired - HeadingRate);
+  float u =  Kp_Heading * HeadingError + Kd_Heading * (HeadingRateDesired - HeadingRate);
   
   //Serial.println(u);
   if(getValidDiver() || mode == 2){ return u; }
@@ -70,10 +74,34 @@ void PositionController(float XDesired, float XPos, float YDesired, float YPos, 
   vCurr[1] = YDesired - YPos;
   
   
-  yaw = (360-yaw)*3.1415/180;
+  yaw = yaw*3.1415/180;
   //Serial.println(yaw);
-  FAuton[0] = Kp_Lateral * (cos(yaw) * vCurr[0] + sin(yaw) * vCurr[1]);
-  FAuton[1] = Kp_Lateral * (vCurr[0] *sin(yaw) - cos(yaw) * vCurr[1]);
+  if(getValidDiver()){
+    FAuton[0] = Kp_Lateral * ( cos(yaw) * vCurr[_X] - sin(yaw) * vCurr[_Y]);
+    FAuton[1] = Kp_Lateral * (-sin(yaw) * vCurr[_X] - cos(yaw) * vCurr[_Y]);
+  }
+  else{
+    FAuton[0] = 0;
+    FAuton[1] = 0;
+  }
+}
+
+void PositionController2(float XDesired, float XPos, float YDesired, float YPos, float yaw){
+  float vCurr[2];
+  float RDesired = sqrt( XDesired*XDesired + YDesired*YDesired );
+  vCurr[1] = YDesired - YPos;
+  
+  
+  yaw = yaw*3.1415/180;
+  //Serial.println(yaw);
+  if(getValidDiver()){
+    FAuton[0] = Kp_Lateral * ( cos(yaw) * vCurr[_X] - sin(yaw) * vCurr[_Y]);
+    FAuton[1] = Kp_Lateral * (-sin(yaw) * vCurr[_X] - cos(yaw) * vCurr[_Y]);
+  }
+  else{
+    FAuton[0] = 0;
+    FAuton[1] = 0;
+  }
 }
 
 void resetDepthI( void ){
@@ -92,8 +120,7 @@ void changeGains( float Gains[] ){
   Kp_Lateral = Gains[5];
   Kd_Lateral = Gains[6];
   resetDepthI();
+  Serial.println(Kd_Lateral);
 }
-
-
 
 

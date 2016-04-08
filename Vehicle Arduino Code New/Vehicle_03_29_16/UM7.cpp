@@ -129,6 +129,8 @@ void UM7::save(){
       yaw_raw = data[4] << 8; //Deg
       yaw_raw |= data[5];
       yaw = yaw_raw/91.02222;
+      if(yaw > 360) { yaw -= 360; }
+      if(yaw < 0) { yaw += 360; }
       
       roll_rate_raw = data[8] << 8; //deg/sec
       roll_rate_raw |= data[9];

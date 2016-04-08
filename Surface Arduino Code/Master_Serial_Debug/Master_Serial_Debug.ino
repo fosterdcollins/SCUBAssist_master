@@ -11,7 +11,7 @@
 
 //test test test
 /*-----( Import needed libraries )-----*/
-#define SerialTxControl 2   //RS485 Direction control
+#define SerialTxControl 3   //RS485 Direction control
 #define RS485Transmit    HIGH
 #define RS485Receive     LOW
 #define ENABLE_TRANSMIT digitalWrite(SerialTxControl, HIGH)
@@ -36,7 +36,7 @@ void setup()   /****** SETUP: RUNS ONCE ******/
   DISABLE_TRANSMIT; 
 
   // Start the software serial port, to another device
-  Serial2.begin(115200);
+  Serial1.begin(115200);
   //digitalWrite(SerialTxControl, RS485Transmit);  // Enable RS485 Transmit
   DISABLE_TRANSMIT;
 
@@ -69,29 +69,29 @@ void serialEvent(){
   while (Serial.available()) {
     charIncomingController[n1] = Serial.read();
     //    Serial.print("n = ");
-    //    Serial.print(n);
+        
     //    Serial.print(" Char = ");
     //    Serial.println(charIncomingController[n1]);
     n1++;
     if(charIncomingController[n1-1] == ';'){
       ENABLE_TRANSMIT; 
       charIncomingController[n1] = '\0';
-      Serial2.println(charIncomingController);
+      Serial1.println(charIncomingController);
       //      Serial.println("finalMsg ");
       //      Serial.println(charIncomingController);
       n1 = 0;
       msgRecivedComputer = 1;
-      delay(10);
+      delay(5);
       DISABLE_TRANSMIT;
     }  
   }
 }
 
-void serialEvent2(){ 
+void serialEvent1(){ 
   //Serial.println("here");
-  while (Serial2.available()){
+  while (Serial1.available()){
     //char Serial2.read();
-    charIncomingVehicle[n2] = Serial2.read();
+    charIncomingVehicle[n2] = Serial1.read();
     //Serial.print(charIncomingVehicle[n2]);
     //    Serial.print("n = ");
     //    Serial.print(n);

@@ -22,6 +22,7 @@ float euler[3] = {0, 0, 0};
 
 
 float eulerGimbal[3] = {0, 0, 0}; //roll pitch yaw
+float eulerGimbal_Set[3] = {0, 0, 0}; //roll pitch yaw
 float Pdiver_cam[3] = {0, 0, 0}; //x y z (ft)
 float Pdiver[3] = {0, 0, 0};
 
@@ -32,8 +33,7 @@ boolean GoodPose = 0;
 float LastValidHeading = 0;
 
 uint16_t checksum(byte Buff[], int num);
-void disableGimbal( void );
-void enableGimbal( void );
+
 
 boolean getValidDiver(void){
   return GoodPose;
@@ -41,13 +41,13 @@ boolean getValidDiver(void){
 
 void getRelativePose(float heading, float depth){
 
-  heading = (360 -heading) / 180 * 3.1415; 
+  heading = heading / 180 * 3.1415; 
   
-  if(GoodPose == 1){
-    Pdiver[0] =  -Pdiver_cam[0]*sin(heading - eulerGimbal[YAW]) + Pdiver_cam[2]*cos(heading - eulerGimbal[YAW])*cos(eulerGimbal[PITCH]) + Pdiver_cam[1]*cos(heading - eulerGimbal[YAW])*sin(eulerGimbal[PITCH]);
-    Pdiver[1] =  -Pdiver_cam[0]*cos(heading - eulerGimbal[YAW]) - Pdiver_cam[2]*sin(heading - eulerGimbal[YAW])*cos(eulerGimbal[PITCH]) - Pdiver_cam[1]*sin(heading - eulerGimbal[YAW])*sin(eulerGimbal[PITCH]);
-    
-    float deltaZ =  -Pdiver_cam[1]*cos(eulerGimbal[PITCH]) + Pdiver_cam[2]*sin(eulerGimbal[PITCH]);
+  if(GoodPose){
+    Pdiver[0] =  -(-Pdiver_cam[_X]*sin(heading + eulerGimbal_Set[_YAW]) + Pdiver_cam[_Y]*cos(heading + eulerGimbal_Set[_YAW])*sin(eulerGimbal[_PITCH]) + Pdiver_cam[_Z]*cos(heading + eulerGimbal_Set[_YAW])*cos(eulerGimbal_Set[_PITCH])) ;
+    Pdiver[1] =  -(-Pdiver_cam[_X]*cos(heading + eulerGimbal_Set[_YAW]) - Pdiver_cam[_Y]*sin(heading + eulerGimbal_Set[_YAW])*sin(eulerGimbal[_PITCH]) - Pdiver_cam[_Z]*sin(heading + eulerGimbal_Set[_YAW])*cos(eulerGimbal_Set[_PITCH])) ;
+      
+    float deltaZ =  -Pdiver_cam[_Y]*cos(eulerGimbal_Set[_PITCH]) + Pdiver_cam[_Z]*sin(eulerGimbal_Set[_PITCH]);
     Pdiver[2] = depth - deltaZ;
   }
   else{
@@ -59,15 +59,15 @@ void getRelativePose(float heading, float depth){
 }
 
 float getDiverX(void){
-  return  Pdiver[0];
+  return  Pdiver[_X];
 }
 
 float getDiverY(void){
-  return  Pdiver[1];
+  return  Pdiver[_Y];
 }
 
 float getDiverZ(void){
-  return  Pdiver[2];
+  return  Pdiver[_Z];
 }
 
 float getHeadingToDiver(void){
@@ -80,7 +80,20 @@ float getHeadingToDiver(void){
     return head;
     } 
   else{ return LastValidHeading; }
-  
+}
+
+float getHeadingToDiverRel(float heading){
+  float diveHead = atan2(-getDiverY(), -getDiverX())*180/3.1415;  
+  if(diveHead < 0) diveHead += 360;
+  diveHead = 360 - diveHead;
+  //Serial.println(diff);
+  if(GoodPose){ 
+    LastValidHeading = diveHead-heading;
+    if(LastValidHeading < -180) LastValidHeading += 360;
+    if(LastValidHeading > 180) LastValidHeading -= 360;
+    return LastValidHeading;
+    } 
+  else{ return LastValidHeading; }
 }
 
 float getPitch( void ){
@@ -98,16 +111,28 @@ void requestAngles( void ){
   sbgc_parser.send_cmd(cmd, 0);
 }
 
+void operateGimbal( float heading, int Mode ){
+  if(Mode == 1 || Mode == 2){
+    setAnglesRel( 0, 0, heading );
+  }
+  if(Mode == 3){
+    setAnglesRel(getHeadingToDiverRel(heading),0, heading);
+  }
+}
+
 void setAnglesRel( float yaw, float pitch, float heading ){
-  c.anglePITCH = SBGC_DEGREE_TO_ANGLE(pitch);
+  c.anglePITCH = SBGC_DEGREE_TO_ANGLE(-pitch);
   c.angleYAW = SBGC_DEGREE_TO_ANGLE(yaw + heading + gimbalOffset);
   SBGC_cmd_control_send(c, sbgc_parser);
-  Serial.println(yaw + heading + gimbalOffset);
+  eulerGimbal_Set[_PITCH] = pitch;
+  eulerGimbal_Set[_YAW] = yaw;
+  //Serial.println(yaw + heading + gimbalOffset);
 }
 
 void setAnglesAbs( float yaw, float pitch){
-  c.anglePITCH = SBGC_DEGREE_TO_ANGLE(pitch);
-  c.angleYAW = SBGC_DEGREE_TO_ANGLE(yaw + initHeading + gimbalOffset);
+  c.anglePITCH = SBGC_DEGREE_TO_ANGLE(-pitch);
+  c.angleYAW = SBGC_DEGREE_TO_ANGLE(yaw + gimbalOffset);
+
   SBGC_cmd_control_send(c, sbgc_parser);
 }
 

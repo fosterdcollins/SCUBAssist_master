@@ -40,7 +40,7 @@ boolean updateControls(void){
     //    Serial.print(micros());
     //    Serial.print(" ");
     char inByte = Serial1.read();
-    //     Serial.println("here");
+//        Serial.println("here");
     if(inByte == 'C' || inByte == 'G'){
       PossibleMsg = 1;
     }
@@ -68,7 +68,7 @@ boolean updateControls(void){
         int Check = sscanf(TempBuffer ,"C %1d,%ld,%ld,%ld,%ld;", &Temp, &Temp[1], &Temp[2], &Temp[3], &Temp[4]);  
 
         //Serial.print("Check: ");
-        //Serial.println(Check);
+//        Serial.println(Check);
         if(Check == 5){ // valid data
           MODE = Temp[0]; // 0,1: received=forces; 2: received=rates for SetPoint
 

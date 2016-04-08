@@ -4,6 +4,7 @@
 float HeadingController(float HeadingDesired, float HeadingRateDesired, float heading, float HeadingRate, int mode); 
 float DepthController(float DepthDesired, float Depth, float DepthRateDeisred, float currTime);
 void PositionController(float XDesired, float XPos, float YDesired, float YPos, float yaw);
+void PositionController2(float XDesired, float XPos, float YDesired, float YPos, float yaw);
 
 float getVXAuton( void );
 float getVYAuton( void );
