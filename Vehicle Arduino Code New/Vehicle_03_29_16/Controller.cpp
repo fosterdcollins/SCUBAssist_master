@@ -64,8 +64,10 @@ float DepthController(float DepthDesired, float Depth, float DepthRateDeisred, f
   
   //Serial.println(u);
   lastDepthTime = currTime;
-  
-  return u;
+  if(getValidDiver()){
+    return u;
+  }
+  else{ return 0; }
 }
 
 void PositionController(float XDesired, float XPos, float YDesired, float YPos, float yaw){
@@ -92,20 +94,25 @@ void PositionController2(float RDesired, float HeadingDesired, float XPos, float
   float thetaPos = getHeadingToDiver();
 
 
-  float thetaDiff = HeadingDesired - thetaPos;
+  float thetaDiff =  HeadingDesired - thetaPos;
   if(thetaDiff > 180) { thetaDiff -= 360; }
   if(thetaDiff < -180) { thetaDiff += 360; }
   
-  float uTheta = Kp_Lateral * thetaDiff;
-  float uR = Kp_Lateral * (RDesired - RPos);
-  Serial.println(RPos);
-  Serial.println(thetaPos);
-  vCurr[_X] = -(uR*XPos - uTheta*YPos)/RPos;
-  vCurr[_Y] = -(uR*YPos + uTheta*XPos)/RPos;  
+  float uTheta = Kp_Lateral * -thetaDiff;
+  float uR = Kp_Lateral * (RPos - RDesired);
   
   yaw = yaw*3.1415/180;
   //Serial.println(yaw);
+  
   if(getValidDiver()){
+    vCurr[_X] = -(uR*XPos - uTheta*YPos)/RPos;
+    vCurr[_Y] = -(uR*YPos + uTheta*XPos)/RPos;  
+    
+    Serial.println( uTheta );
+    Serial.println( uR );
+    Serial.println( vCurr[_X] );
+    Serial.println( vCurr[_Y] );
+  
     FAuton[0] = Kp_Lateral * ( cos(yaw) * vCurr[_X] - sin(yaw) * vCurr[_Y]);
     FAuton[1] = Kp_Lateral * (-sin(yaw) * vCurr[_X] - cos(yaw) * vCurr[_Y]);
   }

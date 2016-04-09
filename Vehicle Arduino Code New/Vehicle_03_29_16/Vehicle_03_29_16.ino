@@ -33,8 +33,8 @@ int readtype = 1;
 int ms = 0;
 int lastms = 0;
 long GimbalTimeLast = millis();
-boolean thrustersEnabled = 0;
-boolean VthrustersEnabled = 0;
+boolean thrustersEnabled = 1;
+boolean VthrustersEnabled = 1;
 
 const float pi = 3.1415926;
 
@@ -210,7 +210,7 @@ if ( millis() - DisableTime >= 25 ){
   dt = imu.AccTime - timeLast;
   if ( dt >= CONTROLTIME ) {//dt >= CONTROLTIME 
     timeLast = imu.AccTime;
-    Serial.println(MODE);
+    //Serial.println(MODE);
 
 
 
@@ -288,28 +288,28 @@ if ( millis() - DisableTime >= 25 ){
 
 
       case 3: // Autonomous
-        int fakeHeading = 0;
+        int fakeHeading = imu.yaw;
         //Cartesian Coordinate Controller
-//        getRelativePose(fakeHeading, currDepth);
-//        SetPoint[_X] = -3;
-//        SetPoint[_Y] = 0;
-//        SetPoint[YAW] = getHeadingToDiver();
-//        SetPoint[YAW_RATE] = 0;
-//        SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth
-//        SetPoint[DEPTH_RATE] = 0;
-//
-//        PositionController2(SetPoint[_X], getDiverX(), SetPoint[_Y], getDiverY(), fakeHeading);
-
-        //Cylindrical Coordinate Controller
         getRelativePose(fakeHeading, currDepth);
-        SetPoint[0] = Mode3RecivedData[0]; //R
-        SetPoint[1] = Mode3RecivedData[1]; //Heading
+        SetPoint[_X] = -3;
+        SetPoint[_Y] = 0;
         SetPoint[YAW] = getHeadingToDiver();
         SetPoint[YAW_RATE] = 0;
         SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth
         SetPoint[DEPTH_RATE] = 0;
 
-        PositionController2(SetPoint[0], SetPoint[1], getDiverX(), getDiverY(), imu.yaw);
+        PositionController(SetPoint[_X], getDiverX(), SetPoint[_Y], getDiverY(), fakeHeading);
+//
+//        //Cylindrical Coordinate Controller
+//        getRelativePose(fakeHeading, currDepth);
+//        SetPoint[0] = Mode3RecivedData[0]; //R
+//        SetPoint[1] = Mode3RecivedData[1]; //Heading
+//        SetPoint[YAW] = getHeadingToDiver();
+//        SetPoint[YAW_RATE] = 0;
+//        SetPoint[DEPTH] = getDiverZ() - Mode3RecivedData[2]; //this returns in absolute depth
+//        SetPoint[DEPTH_RATE] = 0;
+//
+//        PositionController2(SetPoint[0], SetPoint[1], getDiverX(), getDiverY(), fakeHeading);
         
         u[0][0] = getVXAuton();
         u[1][0] = getVYAuton();
@@ -332,9 +332,9 @@ if ( millis() - DisableTime >= 25 ){
         Serial.print(currDepth);
         Serial.print("\tZ: ");
         Serial.print(getDiverZ());
-        Serial.print("\tuX: ");
+        Serial.print("\tuX_V: ");
         Serial.print(u[0][0]);
-        Serial.print("\tuY: ");
+        Serial.print("\tuY_V: ");
         Serial.print(u[1][0]);
         Serial.print("\tuH: ");
         Serial.print(u[2][0]);

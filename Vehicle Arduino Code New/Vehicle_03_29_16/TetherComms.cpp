@@ -10,7 +10,7 @@ float ReceivedData[3][1] = {
 float ZReceivedData = 0;
 int StaleDataCheck = 0;
 char StaleDataFlag = 0;
-float Mode3RecivedData[4] = {4, 90, 1, 0};
+float Mode3RecivedData[4] = {4, 0, 1, 0};
 boolean PossibleMsg = 0;
 
 
@@ -43,7 +43,7 @@ boolean updateControls(void){
     //    Serial.print(" ");
     char inByte = Serial1.read();
 //        Serial.println("here");
-    if(inByte == 'C' || inByte == 'G'){
+    if(inByte == 'C' || inByte == 'G' || inByte == 'S'){
       PossibleMsg = 1;
     }
     if(PossibleMsg){
@@ -96,7 +96,7 @@ boolean updateControls(void){
         long Temp[4]; 
         Serial.println("Setpoint");
         i = 0;
-        int Check = sscanf(TempBuffer ,"G%ld,%ld,%ld,%ld;", &Temp, &Temp[1], &Temp[2], &Temp[3]);  
+        int Check = sscanf(TempBuffer ,"S%ld,%ld,%ld,%ld;", &Temp, &Temp[1], &Temp[2], &Temp[3]);  
         if(Check == 4){ // valid data
           Mode3RecivedData[0] = (float)Temp[0]/100; //R
           Mode3RecivedData[1] = (float)Temp[1]/10;  //Heading
