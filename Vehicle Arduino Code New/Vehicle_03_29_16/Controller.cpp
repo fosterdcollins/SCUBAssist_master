@@ -52,8 +52,7 @@ float HeadingController(float HeadingDesired, float HeadingRateDesired, float he
 }
 
 
-float DepthController(float DepthDesired, float Depth, float DepthRateDeisred, float currTime){
-
+float DepthController(float DepthDesired, float Depth, float DepthRateDeisred, float currTime, int mode){
   if(lastDepthTime == 0){lastDepthTime = currTime - CONTROLTIME;}
   float DepthRate = (Depth - lastDepth) / (currTime-lastDepthTime); //possible problem the first time through
 
@@ -64,10 +63,7 @@ float DepthController(float DepthDesired, float Depth, float DepthRateDeisred, f
   
   //Serial.println(u);
   lastDepthTime = currTime;
-  if(getValidDiver()){
-    return u;
-  }
-  else{ return 0; }
+  return u;
 }
 
 void PositionController(float XDesired, float XPos, float YDesired, float YPos, float yaw){

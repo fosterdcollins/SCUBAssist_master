@@ -277,7 +277,7 @@ if ( millis() - DisableTime >= 25 ){
         Serial.print(u[2][0]);
 
         Matrix.Multiply((float*)Ainv, (float*)u, 3, 3, 1, (float*)Thrust); //x and y same as open loop
-        ZThrust = DepthController(SetPoint[DEPTH], currDepth, SetPoint[DEPTH_RATE], imu.AccTime); //DEPTH temporarily 0
+        ZThrust = DepthController(SetPoint[DEPTH], currDepth, SetPoint[DEPTH_RATE], imu.AccTime, MODE); //DEPTH temporarily 0
 
         Serial.print("\tuDepth: ");
         Serial.println(ZThrust);
@@ -317,7 +317,7 @@ if ( millis() - DisableTime >= 25 ){
 
         Matrix.Multiply((float*)Ainv, (float*)u, 3, 3, 1, (float*)Thrust);
 
-        ZThrust = DepthController(SetPoint[DEPTH], currDepth, SetPoint[DEPTH_RATE], imu.AccTime);
+        ZThrust = DepthController(SetPoint[DEPTH], currDepth, SetPoint[DEPTH_RATE], imu.AccTime, MODE);
 
 
         Serial.print("Yaw: ");

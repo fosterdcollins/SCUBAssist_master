@@ -2,7 +2,7 @@
 
 
 float HeadingController(float HeadingDesired, float HeadingRateDesired, float heading, float HeadingRate, int mode); 
-float DepthController(float DepthDesired, float Depth, float DepthRateDeisred, float currTime);
+float DepthController(float DepthDesired, float Depth, float DepthRateDeisred, float currTime, int mode);
 void PositionController(float XDesired, float XPos, float YDesired, float YPos, float yaw);
 void PositionController2(float RDesired, float HeadingDesired, float XPos, float YPos, float yaw);
 

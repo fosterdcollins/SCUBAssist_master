@@ -3,14 +3,14 @@ close all; clear all;
 ArduinoPresent = 1;
 CompassEnabled = 1;
 PromptSaving = 1;
-PlottingEnabled = 0;
+PlottingEnabled = 1;
 mode = 1; % 0=debug, 1=open, 2=closed, 3=auto
 
 %%%%%%%%%%%%%%%%%%%%  Gains  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Kp_Heading = .85; %.7
 Kd_Heading = .5; %.36
 
-Kp_Depth = 6;
+Kp_Depth = 1.5;
 Kd_Depth = 0;
 Ki_Depth = 0;
 
@@ -31,7 +31,7 @@ gimbalPitch = 20;
 SetPoints = round([R, Theta, Z, gimbalPitch])
 
 if ArduinoPresent
-    arduino = serial('COM3','BaudRate',115200); %change COM port as needed
+    arduino = serial('COM54','BaudRate',115200); %change COM port as needed
     fopen(arduino)
     %     s.BytesAvailableFcn = @ArduinoSerial;
     %     arduino.BytesAvailableFcnMode = 'terminator';

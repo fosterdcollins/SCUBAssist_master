@@ -2,14 +2,14 @@ close all; clear all;
 %fclose(arduino);
 ArduinoPresent = 1;
 CompassEnabled = 1;
-PromptSaving = 0;
-mode = 1; % 0=debug, 1=open, 2=closed, 3=auto
+PromptSaving = 1;
+mode = 2; % 0=debug, 1=open, 2=closed, 3=auto
 
 %%%%%%%%%%%%%%%%%%%%  Gains  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Kp_Heading = .85; %.7
 Kd_Heading = .5; %.36
 
-Kp_Depth = 6;
+Kp_Depth = 3;
 Kd_Depth = 0;
 Ki_Depth = 0;
 
@@ -129,7 +129,7 @@ tic
 time = 2;
 iter = time/LoopTime;
 
-a = [zeros(1, iter), 2*ones(1, iter), zeros(1, iter), -2*ones(1, iter), zeros(1, iter), 4*ones(1, iter/2), zeros(1, iter), -4*ones(1, iter/2), zeros(1, iter)];
+a = [zeros(1, iter*3), 2*ones(1, iter), zeros(1, iter*3), -2*ones(1, iter), zeros(1, iter*3), 4*ones(1, iter/2), zeros(1, iter*3), -4*ones(1, iter/2), zeros(1, iter*7)];
 
 for i = a
     time = toc;
