@@ -29,7 +29,10 @@ boolean updateControls(void){
     StaleDataCheck--;
     if(StaleDataCheck < 0){
       StaleDataFlag = 1;
-      //MODE = 0;
+      digitalWrite(53, HIGH);
+      digitalWrite(51, HIGH);
+      digitalWrite(49, HIGH);
+      MODE = 0;
       ReceivedData[0][0] = 0;
       ReceivedData[1][0] = 0;
       ReceivedData[2][0] = 0;
@@ -111,13 +114,14 @@ boolean updateControls(void){
       }
 
      else if(TempBuffer[0] == 'G'){
-        long Temp[7]; 
-        float Gains[7];
+        int numGains = 9;
+        long Temp[numGains]; 
+        float Gains[numGains];
         Serial.println("Gains");
         i = 0;
-        int Check = sscanf(TempBuffer ,"G%ld,%ld,%ld,%ld,%ld,%ld,%ld;", &Temp, &Temp[1], &Temp[2], &Temp[3], &Temp[4], &Temp[5], &Temp[6]);  
-        if(Check == 7){ // valid data
-          for(int ii = 0; ii < 7; ii++){
+        int Check = sscanf(TempBuffer ,"G%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld;", &Temp, &Temp[1], &Temp[2], &Temp[3], &Temp[4], &Temp[5], &Temp[6], &Temp[7], &Temp[8]);  
+        if(Check == numGains){ // valid data
+          for(int ii = 0; ii < numGains; ii++){
             Gains[ii] = (float)Temp[ii]/DATATRANSFACTOR;  
             Serial.println(Gains[ii], 3);
           }

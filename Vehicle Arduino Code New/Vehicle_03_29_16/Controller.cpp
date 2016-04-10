@@ -11,15 +11,18 @@
 float Kp_Heading = .75;
 float Kd_Heading = .35;
 
-float Kp_Depth = 6;
+float Kp_Depth = 2;
 float Kd_Depth = 0;
-float Ki_Depth = 1;
+float Ki_Depth = 0.4;
 float Integral_Depth = 0;
 float lastDepth = 0;
 float lastDepthTime = 0;
 
-float Kp_Lateral = 1;
-float Kd_Lateral = 0;
+float Kp_X = 1;
+float Kd_X = 0;
+
+float Kp_Y = 1;
+float Kd_Y = 0;
 
 float FAuton[2] = {0, 0};
 
@@ -75,8 +78,8 @@ void PositionController(float XDesired, float XPos, float YDesired, float YPos, 
   yaw = yaw*3.1415/180;
   //Serial.println(yaw);
   if(getValidDiver()){
-    FAuton[0] = Kp_Lateral * ( cos(yaw) * vCurr[_X] - sin(yaw) * vCurr[_Y]);
-    FAuton[1] = Kp_Lateral * (-sin(yaw) * vCurr[_X] - cos(yaw) * vCurr[_Y]);
+    FAuton[0] = Kp_X * ( cos(yaw) * vCurr[_X] - sin(yaw) * vCurr[_Y]);
+    FAuton[1] = Kp_Y * (-sin(yaw) * vCurr[_X] - cos(yaw) * vCurr[_Y]);
   }
   else{
     FAuton[0] = 0;
@@ -90,12 +93,12 @@ void PositionController2(float RDesired, float HeadingDesired, float XPos, float
   float thetaPos = getHeadingToDiver();
 
 
-  float thetaDiff =  HeadingDesired - thetaPos;
-  if(thetaDiff > 180) { thetaDiff -= 360; }
-  if(thetaDiff < -180) { thetaDiff += 360; }
+  float uTheta =  (HeadingDesired - thetaPos);
+  if(uTheta > 180) { uTheta -= 360; }
+  if(uTheta < -180) { uTheta += 360; }
+  uTheta = uTheta*3.1415/180;
   
-  float uTheta = Kp_Lateral * -thetaDiff;
-  float uR = Kp_Lateral * (RPos - RDesired);
+  float uR = (RPos - RDesired);
   
   yaw = yaw*3.1415/180;
   //Serial.println(yaw);
@@ -103,14 +106,21 @@ void PositionController2(float RDesired, float HeadingDesired, float XPos, float
   if(getValidDiver()){
     vCurr[_X] = -(uR*XPos - uTheta*YPos)/RPos;
     vCurr[_Y] = -(uR*YPos + uTheta*XPos)/RPos;  
+
+    Serial.print("\ruR: ");
+    Serial.print( uR );
+    Serial.print("\tuTheta: ");
+    Serial.print( uTheta );
+
     
-    Serial.println( uTheta );
-    Serial.println( uR );
-    Serial.println( vCurr[_X] );
-    Serial.println( vCurr[_Y] );
   
-    FAuton[0] = Kp_Lateral * ( cos(yaw) * vCurr[_X] - sin(yaw) * vCurr[_Y]);
-    FAuton[1] = Kp_Lateral * (-sin(yaw) * vCurr[_X] - cos(yaw) * vCurr[_Y]);
+    FAuton[_X] = Kp_X * ( cos(yaw) * vCurr[_X] - sin(yaw) * vCurr[_Y]);
+    FAuton[_Y] = Kp_Y * (-sin(yaw) * vCurr[_X] - cos(yaw) * vCurr[_Y]);
+    
+    Serial.print("\tFxBody: ");
+    Serial.print( FAuton[_X] );
+    Serial.print("\tFyBody: ");
+    Serial.print( FAuton[_Y] );
   }
   else{
     FAuton[0] = 0;
@@ -131,10 +141,14 @@ void changeGains( float Gains[] ){
   Ki_Depth = Gains[4];
   Serial.println(Ki_Depth);
 
-  Kp_Lateral = Gains[5];
-  Kd_Lateral = Gains[6];
+  Kp_X = Gains[5];
+  Kd_X = Gains[6];
+
+  Kp_Y = Gains[7];
+  Kd_Y = Gains[8];
+  
   resetDepthI();
-  Serial.println(Kd_Lateral);
+  //Serial.println(Kd_X);
 }
 
 

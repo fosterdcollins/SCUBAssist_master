@@ -1,3 +1,4 @@
+#include <SoftwareSerial.h>
 #include <Servo.h>
 #include "TetherComms.h"
 #include "MatrixMath.h"
@@ -33,8 +34,9 @@ int readtype = 1;
 int ms = 0;
 int lastms = 0;
 long GimbalTimeLast = millis();
-boolean thrustersEnabled = 1;
-boolean VthrustersEnabled = 1;
+boolean thrustersEnabled = 0;
+boolean VthrustersEnabled = 0;
+
 
 const float pi = 3.1415926;
 
@@ -116,10 +118,9 @@ void setup() {
 
   Serial.begin(115200);
   Serial1.begin(115200);
-  Serial2.begin(115200);
   Serial3.begin(115200);
-
-
+  initEdison();
+  
   for (int led = 34; led <= 53; led++) {
     pinMode(led, OUTPUT);
     digitalWrite(led, LOW);
@@ -143,7 +144,7 @@ void setup() {
 
   pinMode(22, OUTPUT);
   DISABLE_TRANSMIT;
-
+  
   depthSensor.init();
   depthSensor.setFluidDensity(997); // kg/m^3 (997 freshwater, 1029 for seawater)
 
@@ -207,6 +208,7 @@ if ( millis() - DisableTime >= 25 ){
 
   compassFlag = updateControls();
   SendTelem();
+  updateVision();
   dt = imu.AccTime - timeLast;
   if ( dt >= CONTROLTIME ) {//dt >= CONTROLTIME 
     timeLast = imu.AccTime;
@@ -225,6 +227,9 @@ if ( millis() - DisableTime >= 25 ){
 
 
       case 1: // Tethered, Open Loop
+        digitalWrite(53, LOW);
+        digitalWrite(51, HIGH);
+        digitalWrite(49, HIGH);
         //Serial.println("MODE1");
         Matrix.Multiply((float*)Ainv, (float*)ReceivedData, 3, 3, 1, (float*)Thrust);
         ZThrust = ZReceivedData;
@@ -235,6 +240,10 @@ if ( millis() - DisableTime >= 25 ){
 
 
       case 2: // Tethered, Closed Loop
+        //updateVision();
+        digitalWrite(53, LOW);
+        digitalWrite(51, LOW);
+        digitalWrite(49, HIGH);
         if (lastmode != 2) {
           Serial.println("New Mode2 Detected...");
           SetPoint[YAW] = imu.yaw; //current Heading
@@ -288,39 +297,44 @@ if ( millis() - DisableTime >= 25 ){
 
 
       case 3: // Autonomous
+        //updateVision();
+        digitalWrite(53, LOW);
+        digitalWrite(51, LOW);
+        digitalWrite(49, LOW);
+        
         int fakeHeading = imu.yaw;
         //Cartesian Coordinate Controller
-        getRelativePose(fakeHeading, currDepth);
-        SetPoint[_X] = -3;
-        SetPoint[_Y] = 0;
-        SetPoint[YAW] = getHeadingToDiver();
-        SetPoint[YAW_RATE] = 0;
-        SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth
-        SetPoint[DEPTH_RATE] = 0;
-
-        PositionController(SetPoint[_X], getDiverX(), SetPoint[_Y], getDiverY(), fakeHeading);
-//
-//        //Cylindrical Coordinate Controller
 //        getRelativePose(fakeHeading, currDepth);
-//        SetPoint[0] = Mode3RecivedData[0]; //R
-//        SetPoint[1] = Mode3RecivedData[1]; //Heading
+//        SetPoint[_X] = -3;
+//        SetPoint[_Y] = 0;
 //        SetPoint[YAW] = getHeadingToDiver();
 //        SetPoint[YAW_RATE] = 0;
-//        SetPoint[DEPTH] = getDiverZ() - Mode3RecivedData[2]; //this returns in absolute depth
+//        SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth
 //        SetPoint[DEPTH_RATE] = 0;
 //
-//        PositionController2(SetPoint[0], SetPoint[1], getDiverX(), getDiverY(), fakeHeading);
+//        PositionController(SetPoint[_X], getDiverX(), SetPoint[_Y], getDiverY(), fakeHeading);
+//
+//        //Cylindrical Coordinate Controller
+        getRelativePose(fakeHeading, currDepth);
+        SetPoint[0] = Mode3RecivedData[0]; //R
+        SetPoint[1] = Mode3RecivedData[1]; //Heading
+        SetPoint[YAW] = getHeadingToDiver();
+        SetPoint[YAW_RATE] = 0;
+        SetPoint[DEPTH] = getDiverZ() - Mode3RecivedData[2]; //this returns in absolute depth
+        SetPoint[DEPTH_RATE] = 0;
+
+        PositionController2(SetPoint[0], SetPoint[1], getDiverX(), getDiverY(), fakeHeading);
         
         u[0][0] = getVXAuton();
         u[1][0] = getVYAuton();
-        u[2][0] = HeadingController(SetPoint[YAW], SetPoint[YAW_RATE], imu.yaw, imu.yaw_rate, MODE);
+        u[2][0] = HeadingController(SetPoint[YAW], SetPoint[YAW_RATE], fakeHeading, imu.yaw_rate, MODE);
 
         Matrix.Multiply((float*)Ainv, (float*)u, 3, 3, 1, (float*)Thrust);
 
         ZThrust = DepthController(SetPoint[DEPTH], currDepth, SetPoint[DEPTH_RATE], imu.AccTime, MODE);
 
 
-        Serial.print("Yaw: ");
+        Serial.print("\tYaw: ");
         Serial.print(imu.yaw, 1);
         Serial.print("\tHead2Diver: ");
         Serial.print(getHeadingToDiver(), 1);
@@ -464,12 +478,12 @@ void serialEvent3() {
   }
   //digitalWrite(30, LOW);
 }
-
-void serialEvent2() {
-  //digitalWrite(30, HIGH);
-  //Serial.println("\tSerial2\t");
-  while (Serial2.available()) {
-    updateVision();
-  }
-
-}
+//
+//void serialEvent2() {
+//  Serial.println("here");
+//  //digitalWrite(30, HIGH);
+//  //Serial.println("\tSerial2\t");
+////  while (Serial2.available()) {
+////    
+////  }
+//}

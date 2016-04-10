@@ -2,7 +2,7 @@ close all; clear all;
 %fclose(arduino);
 ArduinoPresent = 1;
 CompassEnabled = 1;
-PromptSaving = 1;
+PromptSaving = 0;
 PlottingEnabled = 1;
 mode = 1; % 0=debug, 1=open, 2=closed, 3=auto
 
@@ -14,17 +14,20 @@ Kp_Depth = 1.5;
 Kd_Depth = 0;
 Ki_Depth = 0;
 
-Kp_Lateral = 1;
-Kd_Lateral = 0;
+Kp_X = 1;
+Kd_X = 0;
 
-Gains = round([Kp_Heading Kd_Heading Kp_Depth Kd_Depth Ki_Depth Kp_Lateral Kd_Lateral]*1000);
+Kp_Y = 1;
+Kd_Y = .5;
+
+Gains = round([Kp_Heading Kd_Heading Kp_Depth Kd_Depth Ki_Depth Kp_X Kd_X Kp_Y Kd_Y]*1000);
 
 %%%%%%%%%%%%%%%%%%%%  Gains  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%  AutoSetpoint  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 R = 4;
-Theta = 180;
+Theta = 0;
 Z = 0;
 gimbalPitch = 20;
 
@@ -38,7 +41,7 @@ if ArduinoPresent
     %     arduino.Terminator = ';';
     set(arduino,'Timeout',.025);
     pause(2);
-    dataStrGain = ['G' num2str(Gains(1)) ',' num2str(Gains(2)) ',' num2str(Gains(3)) ',' num2str(Gains(4)) ',' num2str(Gains(5)) ',' num2str(Gains(6)) ',' num2str(Gains(7)) ';'];
+    dataStrGain = ['G' num2str(Gains(1)) ',' num2str(Gains(2)) ',' num2str(Gains(3)) ',' num2str(Gains(4)) ',' num2str(Gains(5)) ',' num2str(Gains(6)) ',' num2str(Gains(7)) ',' num2str(Gains(8)) ',' num2str(Gains(9)) ';'];
     dataStrGain
     dataStrSetPoint = ['S' num2str(SetPoints(1)*100) ',' num2str(SetPoints(2)*10) ',' num2str(SetPoints(3)*100) ',' num2str(SetPoints(4)*100) ';']
     for i = 1:2
@@ -201,7 +204,7 @@ while (buttons(1) == 0)
         
         axes(3);
         omega = axes(3)*90*RG_Closed/10; %Max 90 deg/sec
-        TorqueRequested = omega; %rename for sending
+        TorqueRequested = -omega; %rename for sending
         
         Zdot = -(axes(4))*2*VG_Closed/10;
         ZForceRequested = Zdot; %rename for sending

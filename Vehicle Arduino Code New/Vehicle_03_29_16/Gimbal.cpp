@@ -1,16 +1,18 @@
+
+
 #include <inttypes.h>
 
 #include "Arduino.h"
 #include "Gimbal.h"
 #include "MatrixMath.h"
 
-
 #define VAL_MAX 2300
 #define VAL_MIN 700
 #define DATATRANSFACTOR 1000
 #define GIMBALSTARTOFFSET 193
 
-HardwareSerial &Gimbal = Serial1;
+//HardwareSerial &Edison = Serial2;
+SoftwareSerial Gimbal(11, 10); // RX, TX
 
 SBGC_cmd_control_t c;
 SerialCommand cmd;
@@ -67,7 +69,12 @@ float getDiverY(void){
 }
 
 float getDiverZ(void){
-  return  Pdiver[_Z];
+  if(GoodPose){
+    return  Pdiver[_Z];
+  }
+  else{
+    return 0;
+  }
 }
 
 float getHeadingToDiver(void){
@@ -131,14 +138,14 @@ void setAnglesRel( float yaw, float pitch, float heading ){
 
 void setAnglesAbs( float yaw, float pitch){
   c.anglePITCH = SBGC_DEGREE_TO_ANGLE(-pitch);
-  c.angleYAW = SBGC_DEGREE_TO_ANGLE(yaw + gimbalOffset);
+  //c.angleYAW = SBGC_DEGREE_TO_ANGLE(yaw + gimbalOffset);
 
   SBGC_cmd_control_send(c, sbgc_parser);
 }
 
 void initGimbal( float heading ){ 
   Serial.println("Gimbal Initialized...");
-  Gimbal.begin(115200);
+  Gimbal.begin(19200);
   pinMode(28, OUTPUT); //Gimbal
   powerOnGimbal();
   delay(3);
@@ -150,7 +157,7 @@ void initGimbal( float heading ){
   c.mode = SBGC_CONTROL_MODE_ANGLE;
   c.speedROLL = c.speedPITCH = c.speedYAW = 50 * SBGC_SPEED_SCALE;
   pinMode(35, OUTPUT);
-  zeroGimbal(heading);
+  //zeroGimbal(heading);
 }
 
 void zeroGimbal(float heading){
@@ -232,6 +239,9 @@ void disableGimbal(void){
 
 /////////////////  Edison Comms  ////////////////////////////
 
+void initEdison(void){
+    Serial2.begin(115200);
+}
 
 static char TempBuffer_Edison[40];
 boolean PossibleMsg_Edison = 0;
@@ -244,7 +254,7 @@ boolean updateVision(void){
     //    Serial.print(micros());
     //    Serial.print(" ");
     char inByte = Serial2.read();
-    //     Serial.println("here");
+    //Serial.println("here");
     if(inByte == 'A' || inByte == 'N'){
       PossibleMsg_Edison = 1;
     }
@@ -295,6 +305,7 @@ boolean updateVision(void){
       }
       else if(TempBuffer_Edison[0] == 'N'){
         //Serial.print("here");
+        //Serial.println(TempBuffer_Edison);
         GoodPose = 0;
         digitalWrite(34, LOW); //red ON
         digitalWrite(35, HIGH); //blue OFF

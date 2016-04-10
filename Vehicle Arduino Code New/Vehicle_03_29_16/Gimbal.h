@@ -1,5 +1,6 @@
 #include <SBGC.h>
 #include <SBGC_Arduino.h>
+#include <SoftwareSerial.h>
 
 #define P_MAX 90
 #define P_MIN -86
@@ -18,6 +19,7 @@
 #define _Z 2
 
 
+
 void setAnglesRel( float yaw, float pitch, float heading );
 void setAnglesAbs( float yaw, float pitch);
 void processGimbal( void );
@@ -33,6 +35,7 @@ void enableGimbal( void );
 void zeroGimbal( float heading );
 void operateGimbal( float heading, int Mode );
 
+void initEdison(void);
 float getDiverX(void);
 float getDiverY(void);
 float getDiverZ(void);
