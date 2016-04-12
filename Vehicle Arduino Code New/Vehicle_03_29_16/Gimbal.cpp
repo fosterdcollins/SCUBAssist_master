@@ -248,7 +248,7 @@ boolean PossibleMsg_Edison = 0;
 int i_Edison = 0;
 
 boolean updateVision(void){
-
+  
   while(Serial2.available() > 0){ 
     //    digitalWrite(13, HIGH);
     //    Serial.print(micros());
@@ -279,7 +279,7 @@ boolean updateVision(void){
       if(TempBuffer_Edison[0] == 'A'){
         long int Temp[3]; 
         i_Edison = 0;
-        //Serial.println(TempBuffer_Edison);
+        Serial.println(TempBuffer_Edison);
         int Check = sscanf(TempBuffer_Edison, "A%ld,%ld,%ld;\0", &Temp, &Temp[1], &Temp[2]);  
 
 //        Serial.print("Check: ");

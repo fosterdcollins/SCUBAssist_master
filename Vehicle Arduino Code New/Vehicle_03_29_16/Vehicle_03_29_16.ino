@@ -34,8 +34,8 @@ int readtype = 1;
 int ms = 0;
 int lastms = 0;
 long GimbalTimeLast = millis();
-boolean thrustersEnabled = 0;
-boolean VthrustersEnabled = 0;
+boolean thrustersEnabled = 1;
+boolean VthrustersEnabled = 1;
 
 
 const float pi = 3.1415926;

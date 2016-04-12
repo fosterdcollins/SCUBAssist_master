@@ -2,7 +2,7 @@ close all; clear all;
 %fclose(arduino);
 ArduinoPresent = 1;
 CompassEnabled = 1;
-PromptSaving = 0;
+PromptSaving = 1;
 PlottingEnabled = 1;
 mode = 1; % 0=debug, 1=open, 2=closed, 3=auto
 
@@ -10,15 +10,15 @@ mode = 1; % 0=debug, 1=open, 2=closed, 3=auto
 Kp_Heading = .85; %.7
 Kd_Heading = .5; %.36
 
-Kp_Depth = 1.5;
+Kp_Depth = -.8;
 Kd_Depth = 0;
-Ki_Depth = 0;
+Ki_Depth = -.01;
 
 Kp_X = 1;
 Kd_X = 0;
 
 Kp_Y = 1;
-Kd_Y = .5;
+Kd_Y = 0;
 
 Gains = round([Kp_Heading Kd_Heading Kp_Depth Kd_Depth Ki_Depth Kp_X Kd_X Kp_Y Kd_Y]*1000);
 
