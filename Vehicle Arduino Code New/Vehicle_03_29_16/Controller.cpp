@@ -62,6 +62,7 @@ float DepthController(float DepthDesired, float Depth, float DepthRateDeisred, f
   Integral_Depth += (DepthDesired - Depth) * (currTime-lastDepthTime);
   Integral_Depth = constrain(Integral_Depth, -(float)2/Ki_Depth, (float)2/Ki_Depth);
   //Serial.print(Integral_Depth);
+  Serial.println(DepthDesired - Depth);
   float u =  Kp_Depth * (DepthDesired - Depth) + Kd_Depth * (DepthRateDeisred - DepthRate) + Ki_Depth * Integral_Depth;
   
   //Serial.println(u);

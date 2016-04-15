@@ -38,7 +38,7 @@ void operateGimbal( float heading, int Mode );
 void initEdison(void);
 float getDiverX(void);
 float getDiverY(void);
-float getDiverZ(void);
+float getDiverZ(float depth);
 boolean getValidDiver(void); 
 
 void getRelativePose(float heading, float depth);

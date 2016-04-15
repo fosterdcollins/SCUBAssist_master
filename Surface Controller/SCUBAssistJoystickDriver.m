@@ -2,17 +2,17 @@ close all; clear all;
 %fclose(arduino);
 ArduinoPresent = 1;
 CompassEnabled = 1;
-PromptSaving = 1;
-PlottingEnabled = 1;
+PromptSaving = 0;
+PlottingEnabled = 0;
 mode = 1; % 0=debug, 1=open, 2=closed, 3=auto
 
 %%%%%%%%%%%%%%%%%%%%  Gains  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Kp_Heading = .85; %.7
 Kd_Heading = .5; %.36
 
-Kp_Depth = -.8;
+Kp_Depth = .8;
 Kd_Depth = 0;
-Ki_Depth = -.01;
+Ki_Depth = 0;
 
 Kp_X = 1;
 Kd_X = 0;

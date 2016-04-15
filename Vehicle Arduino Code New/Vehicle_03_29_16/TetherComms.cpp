@@ -29,10 +29,11 @@ boolean updateControls(void){
     StaleDataCheck--;
     if(StaleDataCheck < 0){
       StaleDataFlag = 1;
-      digitalWrite(53, HIGH);
-      digitalWrite(51, HIGH);
-      digitalWrite(49, HIGH);
-      MODE = 0;
+      
+      if(MODE != 3){ 
+        MODE = 0; 
+        }
+      
       ReceivedData[0][0] = 0;
       ReceivedData[1][0] = 0;
       ReceivedData[2][0] = 0;

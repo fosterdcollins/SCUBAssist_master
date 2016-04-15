@@ -33,6 +33,7 @@ float initHeading = 0;
 
 boolean GoodPose = 0;
 float LastValidHeading = 0;
+float LastValidDepth = 0;
 
 uint16_t checksum(byte Buff[], int num);
 
@@ -49,7 +50,7 @@ void getRelativePose(float heading, float depth){
     Pdiver[0] =  -(-Pdiver_cam[_X]*sin(heading + eulerGimbal_Set[_YAW]) + Pdiver_cam[_Y]*cos(heading + eulerGimbal_Set[_YAW])*sin(eulerGimbal[_PITCH]) + Pdiver_cam[_Z]*cos(heading + eulerGimbal_Set[_YAW])*cos(eulerGimbal_Set[_PITCH])) ;
     Pdiver[1] =  -(-Pdiver_cam[_X]*cos(heading + eulerGimbal_Set[_YAW]) - Pdiver_cam[_Y]*sin(heading + eulerGimbal_Set[_YAW])*sin(eulerGimbal[_PITCH]) - Pdiver_cam[_Z]*sin(heading + eulerGimbal_Set[_YAW])*cos(eulerGimbal_Set[_PITCH])) ;
       
-    float deltaZ =  -Pdiver_cam[_Y]*cos(eulerGimbal_Set[_PITCH]) + Pdiver_cam[_Z]*sin(eulerGimbal_Set[_PITCH]);
+    float deltaZ =  (-Pdiver_cam[_Y]*cos(eulerGimbal_Set[_PITCH]) + Pdiver_cam[_Z]*sin(eulerGimbal_Set[_PITCH]));
     Pdiver[2] = depth - deltaZ;
   }
   else{
@@ -68,12 +69,13 @@ float getDiverY(void){
   return  Pdiver[_Y];
 }
 
-float getDiverZ(void){
+float getDiverZ(float depth){
   if(GoodPose){
+    LastValidDepth = Pdiver[_Z];
     return  Pdiver[_Z];
   }
   else{
-    return 0;
+    return LastValidDepth;
   }
 }
 
@@ -148,14 +150,14 @@ void initGimbal( float heading ){
   Gimbal.begin(19200);
   pinMode(28, OUTPUT); //Gimbal
   powerOnGimbal();
-  delay(3);
-  disableGimbal();
   delay(1000);
-  
   SBGC_Demo_setup(&Gimbal);
     
   c.mode = SBGC_CONTROL_MODE_ANGLE;
   c.speedROLL = c.speedPITCH = c.speedYAW = 50 * SBGC_SPEED_SCALE;
+  c.anglePITCH = SBGC_DEGREE_TO_ANGLE(0);
+  c.angleROLL = SBGC_DEGREE_TO_ANGLE(0);
+  SBGC_cmd_control_send(c, sbgc_parser);
   pinMode(35, OUTPUT);
   //zeroGimbal(heading);
 }
@@ -279,7 +281,7 @@ boolean updateVision(void){
       if(TempBuffer_Edison[0] == 'A'){
         long int Temp[3]; 
         i_Edison = 0;
-        Serial.println(TempBuffer_Edison);
+        //Serial.println(TempBuffer_Edison);
         int Check = sscanf(TempBuffer_Edison, "A%ld,%ld,%ld;\0", &Temp, &Temp[1], &Temp[2]);  
 
 //        Serial.print("Check: ");

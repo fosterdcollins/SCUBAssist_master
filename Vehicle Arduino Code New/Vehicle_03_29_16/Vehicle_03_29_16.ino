@@ -12,6 +12,7 @@
 #include <SBGC.h>
 #include <SBGC_Arduino.h>
 #include "SoftReset.h"
+#include "LED.h"
 
 int MODE = 0;
 int lastmode;
@@ -20,6 +21,14 @@ UM7 imu;
 
 void SendTelem(void);
 void processGimbal( void );
+
+boolean possibleMode3 = 0;
+boolean enableMode3 = 0;
+boolean Mode3Latch = 0;
+boolean NewSetpoint = 0;
+long Mode3Time = 0;
+
+float BootSetpoint[3] = {0, 0, 0};
 
 #define SendingEnabled 1
 #define ENABLE_TRANSMIT digitalWrite(22, HIGH)
@@ -34,8 +43,8 @@ int readtype = 1;
 int ms = 0;
 int lastms = 0;
 long GimbalTimeLast = millis();
-boolean thrustersEnabled = 1;
-boolean VthrustersEnabled = 1;
+int thrustersEnabled = 1;
+int VthrustersEnabled = 1;
 
 
 const float pi = 3.1415926;
@@ -154,7 +163,7 @@ void setup() {
 
   pinMode(13, OUTPUT);
 
-  MODE = 1;
+  MODE = 3;
 
   Serial.println("Ready!");
 }
@@ -165,6 +174,7 @@ void setup() {
 
 /////////////////////////// Main Loop  /////////////////////////////
 void loop() {
+
   //Serial.println("mainloop");
 
   //Serial.println(getPitch());
@@ -176,13 +186,12 @@ void loop() {
   //    //operateGimbal( imu.yaw, MODE );
   //}
 
-
   //Depth Sensor
   ms = millis();
-  if ( ms - lastms >= 200 ) { //
+  if ( ms - lastms >= 20 ) { 
     lastms = ms;
     if (readtype == 1) {
-      depthSensor.read1();/////
+      depthSensor.read1();
       readtype = 2;
     }
     else if (readtype == 2) {
@@ -215,10 +224,18 @@ if ( millis() - DisableTime >= 25 ){
     //Serial.println(MODE);
 
 
-
+    Serial.println(thrustersEnabled);
     switch (MODE) {
       case 0: // Debug
-        //Serial.println("MODE0");
+        thrustersEnabled = 1*thrustersEnabled;
+        VthrustersEnabled = 1*VthrustersEnabled;
+        digitalWrite(53, HIGH);
+        digitalWrite(51, HIGH);
+        digitalWrite(49, HIGH);
+        digitalWrite(52, HIGH);
+        digitalWrite(50, HIGH);
+        digitalWrite(48, HIGH);
+        //Serial.println(MODE);
         Matrix.Multiply((float*)Ainv, (float*)ReceivedData, 3, 3, 1, (float*)Thrust);
         lastmode = 0;
         break;
@@ -227,9 +244,14 @@ if ( millis() - DisableTime >= 25 ){
 
 
       case 1: // Tethered, Open Loop
+        thrustersEnabled = 1;
+        VthrustersEnabled = 1;
         digitalWrite(53, LOW);
         digitalWrite(51, HIGH);
         digitalWrite(49, HIGH);
+        digitalWrite(52, HIGH);
+        digitalWrite(50, HIGH);
+        digitalWrite(48, HIGH);
         //Serial.println("MODE1");
         Matrix.Multiply((float*)Ainv, (float*)ReceivedData, 3, 3, 1, (float*)Thrust);
         ZThrust = ZReceivedData;
@@ -240,10 +262,16 @@ if ( millis() - DisableTime >= 25 ){
 
 
       case 2: // Tethered, Closed Loop
+        thrustersEnabled = 1;
+        VthrustersEnabled = 1;      
         //updateVision();
         digitalWrite(53, LOW);
         digitalWrite(51, LOW);
         digitalWrite(49, HIGH);
+        digitalWrite(52, HIGH);
+        digitalWrite(50, HIGH);
+        digitalWrite(48, HIGH);
+        
         if (lastmode != 2) {
           Serial.println("New Mode2 Detected...");
           SetPoint[YAW] = imu.yaw; //current Heading
@@ -297,65 +325,132 @@ if ( millis() - DisableTime >= 25 ){
 
 
       case 3: // Autonomous
-        //updateVision();
+      
+      //Serial.println("here");
         digitalWrite(53, LOW);
         digitalWrite(51, LOW);
-        digitalWrite(49, LOW);
+        digitalWrite(49, LOW);     
+        digitalWrite(52, HIGH);
+        digitalWrite(50, HIGH);
+        digitalWrite(48, HIGH);
         
-        int fakeHeading = imu.yaw;
-        //Cartesian Coordinate Controller
-//        getRelativePose(fakeHeading, currDepth);
-//        SetPoint[_X] = -3;
-//        SetPoint[_Y] = 0;
-//        SetPoint[YAW] = getHeadingToDiver();
-//        SetPoint[YAW_RATE] = 0;
-//        SetPoint[DEPTH] = getDiverZ() - 2; //this returns in absolute depth
-//        SetPoint[DEPTH_RATE] = 0;
-//
-//        PositionController(SetPoint[_X], getDiverX(), SetPoint[_Y], getDiverY(), fakeHeading);
-//
-//        //Cylindrical Coordinate Controller
-        getRelativePose(fakeHeading, currDepth);
-        SetPoint[0] = Mode3RecivedData[0]; //R
-        SetPoint[1] = Mode3RecivedData[1]; //Heading
-        SetPoint[YAW] = getHeadingToDiver();
-        SetPoint[YAW_RATE] = 0;
-        SetPoint[DEPTH] = getDiverZ() - Mode3RecivedData[2]; //this returns in absolute depth
-        SetPoint[DEPTH_RATE] = 0;
+        if(imu.pitch > 35 || imu.pitch < -35){
+          if(possibleMode3 == 0){ Mode3Time = millis(); Serial.println("initial");}
+          if(millis() - Mode3Time > 1500 && Mode3Latch == 0){ 
+            Serial.println(enableMode3);
+            if(enableMode3 == 0){ 
+              enableMode3 = 1; 
+              Mode3Latch = 1;
+              Serial.println("Mode 3 Enabled"); 
+              if(1){
+                BootSetpoint[0] = Mode3RecivedData[0]; //R
+                BootSetpoint[1] = Mode3RecivedData[1]; //Heading
+                BootSetpoint[2] = Mode3RecivedData[2];
+                Serial.println("Tether Setpoint");
+                NewSetpoint = 0;
+              } 
+              else{
+                NewSetpoint = 1;
+                Serial.println("waiting for Camera Setpoint...");
+              }
+           }
+           else if(enableMode3){ 
+              enableMode3 = 0;
+              Mode3Latch = 1;
+              Serial.println("Mode 3 Disabled"); 
+            }
+          }
+          possibleMode3 = 1;
+        }
+        else{ possibleMode3 = 0; Mode3Latch = 0;}
 
-        PositionController2(SetPoint[0], SetPoint[1], getDiverX(), getDiverY(), fakeHeading);
-        
-        u[0][0] = getVXAuton();
-        u[1][0] = getVYAuton();
-        u[2][0] = HeadingController(SetPoint[YAW], SetPoint[YAW_RATE], fakeHeading, imu.yaw_rate, MODE);
+        if(enableMode3){
+          //blue LEDs on
+          thrustersEnabled = 1;
+          VthrustersEnabled = 1; 
+          int fakeHeading = imu.yaw;
+          //Cartesian Coordinate Controller
+  //        getRelativePose(fakeHeading, currDepth);
+  //        SetPoint[_X] = -3;
+  //        SetPoint[_Y] = 0;
+  //        SetPoint[YAW] = getHeadingToDiver();
+  //        SetPoint[YAW_RATE] = 0;
+  //        SetPoint[DEPTH] = getDiverZ(currDepth) - 2; //this returns in absolute depth
+  //        SetPoint[DEPTH_RATE] = 0;
+  //
+  //        PositionController(SetPoint[_X], getDiverX(), SetPoint[_Y], getDiverY(), fakeHeading);
+  //
 
-        Matrix.Multiply((float*)Ainv, (float*)u, 3, 3, 1, (float*)Thrust);
+  //        Cylindrical Coordinate Controller
+          getRelativePose(fakeHeading, currDepth);
 
-        ZThrust = DepthController(SetPoint[DEPTH], currDepth, SetPoint[DEPTH_RATE], imu.AccTime, MODE);
+          //if you havent gotten anything from the tether and you see something
+          if(NewSetpoint && getValidDiver()){
+                BootSetpoint[0] = sqrt(getDiverX()*getDiverX() + getDiverY()*getDiverY()); //R
+                BootSetpoint[1] = getHeadingToDiver(); //Heading
+                BootSetpoint[2] = getDiverZ(currDepth);
+                NewSetpoint = 0;
+                Serial.println("Camera Setpoint");
+          }
 
-
-        Serial.print("\tYaw: ");
-        Serial.print(imu.yaw, 1);
-        Serial.print("\tHead2Diver: ");
-        Serial.print(getHeadingToDiver(), 1);
-        Serial.print("\tX: ");
-        Serial.print(getDiverX());
-        Serial.print("\tY: ");
-        Serial.print(getDiverY());
-        Serial.print("\tCD: ");
-        Serial.print(currDepth);
-        Serial.print("\tZ: ");
-        Serial.print(getDiverZ());
-        Serial.print("\tuX_V: ");
-        Serial.print(u[0][0]);
-        Serial.print("\tuY_V: ");
-        Serial.print(u[1][0]);
-        Serial.print("\tuH: ");
-        Serial.print(u[2][0]);
-        Serial.print("\tuZ: ");
-        Serial.println(ZThrust);
-
-        lastmode = 3;
+          
+          if(!NewSetpoint){
+            SetPoint[0] = BootSetpoint[0]; //R
+            SetPoint[1] = BootSetpoint[1]; //Heading
+            SetPoint[YAW] = getHeadingToDiver();
+            SetPoint[YAW_RATE] = 0;
+            SetPoint[DEPTH] = getDiverZ(currDepth); //this returns in absolute depth
+            SetPoint[DEPTH_RATE] = 0;
+    
+            PositionController2(SetPoint[0], SetPoint[1], getDiverX(), getDiverY(), fakeHeading);
+            
+            u[0][0] = getVXAuton();
+            u[1][0] = getVYAuton();
+            u[2][0] = HeadingController(SetPoint[YAW], SetPoint[YAW_RATE], fakeHeading, imu.yaw_rate, MODE);
+    
+            Matrix.Multiply((float*)Ainv, (float*)u, 3, 3, 1, (float*)Thrust);
+    
+            ZThrust = DepthController(SetPoint[DEPTH], currDepth, SetPoint[DEPTH_RATE], imu.AccTime, MODE);
+    
+    
+            Serial.print("\tYaw: ");
+            Serial.print(imu.yaw, 1);
+            Serial.print("\tHead2Diver: ");
+            Serial.print(getHeadingToDiver(), 1);
+            Serial.print("\tX: ");
+            Serial.print(getDiverX());
+            Serial.print("\tY: ");
+            Serial.print(getDiverY());
+            Serial.print("\tCD: ");
+            Serial.print(currDepth);
+            Serial.print("\tZ: ");
+            Serial.print(getDiverZ(currDepth));
+            Serial.print("\tuX_V: ");
+            Serial.print(u[0][0]);
+            Serial.print("\tuY_V: ");
+            Serial.print(u[1][0]);
+            Serial.print("\tuH: ");
+            Serial.print(u[2][0]);
+            Serial.print("\tuZ: ");
+            Serial.println(ZThrust);
+          }
+          
+          thrustersEnabled = 1*thrustersEnabled;
+          VthrustersEnabled = 1*VthrustersEnabled;
+          
+          lastmode = 3;
+        }
+        else{
+          thrustersEnabled = 0;
+          VthrustersEnabled = 0;
+            digitalWrite(53, HIGH);
+            digitalWrite(51, HIGH);
+            digitalWrite(49, HIGH);     
+            digitalWrite(52, LOW);
+            digitalWrite(50, LOW);
+            digitalWrite(48, LOW);   
+          lastmode = 3;
+        }
         break;
     }
 
@@ -369,6 +464,12 @@ if ( millis() - DisableTime >= 25 ){
       if(VthrustersEnabled){
         VThruster.writeMicroseconds(PWMVals(ZThrust));
       }
+    }
+    else{
+        HThruster1.writeMicroseconds(1500);
+        HThruster2.writeMicroseconds(1500);
+        HThruster3.writeMicroseconds(1560);
+        VThruster.writeMicroseconds(1500);
     }
     //    HThruster1.writeMicroseconds(1400);
     //    HThruster2.writeMicroseconds(1400);
@@ -478,6 +579,7 @@ void serialEvent3() {
   }
   //digitalWrite(30, LOW);
 }
+
 //
 //void serialEvent2() {
 //  Serial.println("here");
@@ -487,3 +589,5 @@ void serialEvent3() {
 ////    
 ////  }
 //}
+
+
