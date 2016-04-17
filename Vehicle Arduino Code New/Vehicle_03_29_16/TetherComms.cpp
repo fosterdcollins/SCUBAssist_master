@@ -10,7 +10,7 @@ float ReceivedData[3][1] = {
 float ZReceivedData = 0;
 int StaleDataCheck = 0;
 char StaleDataFlag = 0;
-float Mode3RecivedData[4] = {4, 0, 1, 0};
+float Mode3RecivedData[4] = {4, 0, 0, 0};
 boolean PossibleMsg = 0;
 
 
@@ -47,7 +47,7 @@ boolean updateControls(void){
     //    Serial.print(" ");
     char inByte = Serial1.read();
 //        Serial.println("here");
-    if(inByte == 'C' || inByte == 'G' || inByte == 'S'){
+    if( inByte == 'C' || inByte == 'G' || inByte == 'S' ){
       PossibleMsg = 1;
     }
     if(PossibleMsg){

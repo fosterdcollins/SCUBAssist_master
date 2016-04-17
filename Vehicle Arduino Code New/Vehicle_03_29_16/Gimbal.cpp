@@ -28,6 +28,10 @@ float eulerGimbal_Set[3] = {0, 0, 0}; //roll pitch yaw
 float Pdiver_cam[3] = {0, 0, 0}; //x y z (ft)
 float Pdiver[3] = {0, 0, 0};
 
+float V[3] = {0, 0, 0};
+unsigned long LastTime = 0;
+float Vfilter = .5;
+
 float gimbalOffset = 0;
 float initHeading = 0;
 
@@ -45,6 +49,7 @@ boolean getValidDiver(void){
 void getRelativePose(float heading, float depth){
 
   heading = heading / 180 * 3.1415; 
+  float LastPose[3] = {Pdiver[_X], Pdiver[_Y], depth};
   
   if(GoodPose){
     Pdiver[0] =  -(-Pdiver_cam[_X]*sin(heading + eulerGimbal_Set[_YAW]) + Pdiver_cam[_Y]*cos(heading + eulerGimbal_Set[_YAW])*sin(eulerGimbal[_PITCH]) + Pdiver_cam[_Z]*cos(heading + eulerGimbal_Set[_YAW])*cos(eulerGimbal_Set[_PITCH])) ;
@@ -52,24 +57,27 @@ void getRelativePose(float heading, float depth){
       
     float deltaZ =  (-Pdiver_cam[_Y]*cos(eulerGimbal_Set[_PITCH]) + Pdiver_cam[_Z]*sin(eulerGimbal_Set[_PITCH]));
     Pdiver[2] = depth - deltaZ;
-  }
-  else{
-     Pdiver[0] = 0;
-     Pdiver[1] = 0;
-     Pdiver[2] = 0;
+    
+    V[_X] = Vfilter*(Pdiver[_X]-LastPose[_X])/(micros() - LastTime)*1000000 + (1-Vfilter)*V[_X];
+    V[_Y] = Vfilter*(Pdiver[_Y]-LastPose[_Y])/(micros() - LastTime)*1000000 + (1-Vfilter)*V[_Y];
+    V[_Z] = Vfilter*(depth-LastPose[_Z])/(micros() - LastTime)*1000000 + (1-Vfilter)*V[_Z];
+    
+    LastTime = micros();
   }
   
 }
 
 float getDiverX(void){
-  return  Pdiver[_X];
+  if(GoodPose) { return  Pdiver[_X]; }
+  else{ return  0; }
 }
 
 float getDiverY(void){
-  return  Pdiver[_Y];
+  if(GoodPose) { return  Pdiver[_Y]; }
+  else{ return  0; }
 }
 
-float getDiverZ(float depth){
+float getDiverZ(void){
   if(GoodPose){
     LastValidDepth = Pdiver[_Z];
     return  Pdiver[_Z];
@@ -77,6 +85,18 @@ float getDiverZ(float depth){
   else{
     return LastValidDepth;
   }
+}
+
+float getDiverVX(void){
+  return  V[_X];
+}
+
+float getDiverVY(void){
+  return  V[_Y];
+}
+
+float getDiverVZ(void){
+  return  V[_Z];
 }
 
 float getHeadingToDiver(void){
