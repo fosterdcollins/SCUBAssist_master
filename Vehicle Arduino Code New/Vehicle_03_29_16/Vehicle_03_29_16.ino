@@ -129,6 +129,25 @@ void setup() {
   Serial1.begin(115200);
   Serial3.begin(115200);
   initEdison();
+
+  pinMode(24, OUTPUT);
+  pinMode(25, OUTPUT);
+  digitalWrite(25, HIGH); //set
+  digitalWrite(24, HIGH); //res
+  delay(500);
+  digitalWrite(24, LOW);
+  delay(500);
+  digitalWrite(24, HIGH);
+  delay(500);
+   digitalWrite(25, LOW);
+     delay(500);
+  digitalWrite(25,HIGH);
+    delay(500);
+    
+ 
+  
+  
+  
   
   for (int led = 34; led <= 53; led++) {
     pinMode(led, OUTPUT);
@@ -297,7 +316,7 @@ if ( millis() - DisableTime >= 25 ){
         //increment depth setpoint
         SetPoint[DEPTH] += ZReceivedData * dt;
         SetPoint[DEPTH_RATE] = ZReceivedData;
-        SetPoint[DEPTH] = constrain(SetPoint[DEPTH], -1, 12);
+        SetPoint[DEPTH] = constrain(SetPoint[DEPTH], -1, 60);
 
         Serial.print("\tD: ");
         Serial.print(SetPoint[DEPTH]);
